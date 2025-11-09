@@ -1,0 +1,93 @@
+const WorkoutDaySetModel = require('../models/workoutDaySetModel');
+const WorkoutDayModel = require('../models/workoutDayModel');
+
+class WorkoutDaySetController {
+  static async createWorkoutDaySet(req, res) {
+    try {
+      const dayExists = await WorkoutDayModel.exists(req.validatedBody.workoutDayId);
+
+      if (!dayExists) {
+        return res.status(404).json({
+          code: 'NOT_FOUND',
+          message: 'Workout day not found',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      const workoutDaySet = await WorkoutDaySetModel.create(req.validatedBody);
+      res.status(201).json(workoutDaySet);
+    } catch (error) {
+      console.error('Error creating workout day set:', error);
+      if (error.code === '23505') { // Unique constraint violation
+        return res.status(400).json({
+          code: 'DUPLICATE_ERROR',
+          message: 'This muscle group already has a set configuration for this workout day',
+          timestamp: new Date().toISOString(),
+        });
+      }
+      if (error.code === '23503') { // Foreign key violation
+        return res.status(404).json({
+          code: 'NOT_FOUND',
+          message: 'Muscle group not found',
+          timestamp: new Date().toISOString(),
+        });
+      }
+      res.status(500).json({
+        code: 'INTERNAL_ERROR',
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  static async updateWorkoutDaySet(req, res) {
+    try {
+      const { setId } = req.params;
+      const exists = await WorkoutDaySetModel.exists(setId);
+
+      if (!exists) {
+        return res.status(404).json({
+          code: 'NOT_FOUND',
+          message: 'Workout day set not found',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      const workoutDaySet = await WorkoutDaySetModel.update(setId, req.validatedBody);
+      res.status(200).json(workoutDaySet);
+    } catch (error) {
+      console.error('Error updating workout day set:', error);
+      res.status(500).json({
+        code: 'INTERNAL_ERROR',
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  static async deleteWorkoutDaySet(req, res) {
+    try {
+      const { setId } = req.params;
+      const deleted = await WorkoutDaySetModel.delete(setId);
+
+      if (!deleted) {
+        return res.status(404).json({
+          code: 'NOT_FOUND',
+          message: 'Workout day set not found',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting workout day set:', error);
+      res.status(500).json({
+        code: 'INTERNAL_ERROR',
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+}
+
+module.exports = WorkoutDaySetController;
