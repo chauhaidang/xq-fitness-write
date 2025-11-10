@@ -1,3 +1,5 @@
 .env
 node_modules
 .idea
+xq-compose.yml
+nginx-gateway.conf
