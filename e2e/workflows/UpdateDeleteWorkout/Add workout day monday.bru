@@ -1,0 +1,42 @@
+meta {
+  name: Add workout day monday
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/workout-days
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{authToken}}
+}
+
+body:json {
+  {
+    "routineId": {{routineId}},
+    "dayNumber": 1,
+    "dayName": "Monday"
+  }
+}
+
+script:post-response {
+  const { validateResponse, storeValue } = require('../helpers/validators.js');
+  
+  validateResponse(res, 201, {
+    id: 'number',
+  });
+  
+  
+  storeValue(bru, 'dayId1', res, 'id')
+}
+
+tests {
+  test('Workout day created', function () {
+    const chai = require('chai');
+    expect(res.getStatus()).to.equal(201);
+  });
+}

@@ -1,0 +1,82 @@
+name: E2E Workflow Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: ghcr.io/chauhaidang/xq-fitness-db:latest
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: xq_fitness
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install root dependencies (API server only)
+        run: npm install
+
+      - name: Install E2E dependencies (standalone framework)
+        working-directory: ./e2e
+        run: npm install
+
+      - name: Build E2E helpers (TypeScript → JavaScript)
+        working-directory: ./e2e
+        run: npm run build
+
+      - name: Start API server
+        run: npm start &
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/xq_fitness
+
+      - name: Wait for API to be ready
+        run: npx wait-on http://localhost:3000/api/v1/health --timeout 30000
+        env:
+          NODE_ENV: test
+
+      - name: Install Bruno CLI
+        run: npm install -g @usebruno/cli
+
+      - name: Run E2E workflow tests
+        working-directory: ./e2e
+        run: npm run test:ci
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-reports
+          path: test-reports/
+          retention-days: 7
+
+      - name: Publish test results to PR
+        if: always() && github.event_name == 'pull_request'
+        uses: dorny/test-reporter@v1
+        with:
+          name: E2E Workflow Test Results
+          path: test-reports/e2e-workflows-junit.xml
+          reporter: java-junit
+          fail-on-error: false

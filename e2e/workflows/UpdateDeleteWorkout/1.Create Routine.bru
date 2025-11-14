@@ -1,0 +1,57 @@
+meta {
+  name: Create Routine
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/routines
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{authToken}}
+}
+
+body:json {
+  {
+    "name": "{{routineName}}",
+    "description": "Update and Delete Test Routine",
+    "isActive": true
+  }
+}
+
+script:pre-request {
+  const { generateAuthToken, setAuthHeader } = require('../helpers/auth.js');
+  const { generateTestData } = require('../helpers/test-data.js');
+  
+  const testData = generateTestData();
+  const token = generateAuthToken(bru.getEnvVar('authSecret'), testData.userId);
+  
+  setAuthHeader(req, token);
+  
+  bru.setVar('authToken', token);
+  bru.setVar('routineName', testData.routine.name);
+}
+
+script:post-response {
+  const { validateResponse, storeValue } = require('../helpers/validators.js');
+
+  validateResponse(res, 201, {
+    id: 'number',
+    name: 'string',
+    is_active: 'boolean'
+  });
+
+  storeValue(bru, 'routineId', res, 'id');
+}
+
+tests {
+  test('Routine created', function () {
+    const chai = require('chai');
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().id).to.be.a('number');
+  });
+}
