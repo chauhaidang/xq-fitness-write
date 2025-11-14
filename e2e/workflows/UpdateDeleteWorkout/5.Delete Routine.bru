@@ -1,0 +1,30 @@
+meta {
+  name: Delete Routine
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/routines/{{routineId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+script:post-response {
+  const chai = require('chai');
+  const expect = chai.expect;
+  
+  expect(res.getStatus()).to.be.oneOf([200, 204]);
+}
+
+tests {
+  test('Routine deleted successfully', function () {
+    const chai = require('chai');
+    const expect = chai.expect;
+    expect(res.getStatus()).to.be.oneOf([200, 204]);
+  });
+}

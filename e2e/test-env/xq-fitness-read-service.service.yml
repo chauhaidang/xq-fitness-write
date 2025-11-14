@@ -1,4 +1,4 @@
-image: xq-fitness-read-service
+image: ghcr.io/chauhaidang/xq-fitness-read-service
 tag: latest
 port: 8080
 dependencyGroups:

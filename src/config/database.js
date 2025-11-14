@@ -1,5 +1,9 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 require('dotenv').config();
+
+// Configure pg to parse int8 (BIGINT) as integers instead of strings
+// Safe for IDs that don't exceed JavaScript's safe integer limit (2^53 - 1)
+types.setTypeParser(types.builtins.INT8, (val) => parseInt(val, 10));
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
