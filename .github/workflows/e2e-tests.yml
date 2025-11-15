@@ -28,7 +28,6 @@ jobs:
       - name: Install global xq-infra
         run: npm install -g @chauhaidang/xq-test-infra
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       - name: Install root dependencies (API server only)
@@ -42,6 +41,8 @@ jobs:
       - name: Install E2E dependencies (Jest + PactumJS)
         working-directory: ./e2e
         run: npm install
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       - name: Start up environment
         run: xq-infra generate -f ./test-env
