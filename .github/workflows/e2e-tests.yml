@@ -29,6 +29,7 @@ jobs:
         run: npm install -g @chauhaidang/xq-test-infra
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       - name: Install root dependencies (API server only)
         run: npm install
