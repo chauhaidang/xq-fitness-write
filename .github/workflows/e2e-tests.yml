@@ -22,7 +22,7 @@ jobs:
           cache: 'npm'
 
       - name: Install global xq-infra
-        run: npm install -g xq-infra
+        run: npm install -g @chauhaidang/xq-test-infra
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
