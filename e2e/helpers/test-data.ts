@@ -1,74 +1,64 @@
-const { v4: uuidv4 } = require('uuid');
-
-export interface MuscleGroup {
-  id: number;
-  name: string;
-}
-
-export interface WorkoutDay {
-  dayNumber: number;
-  name: string;
-  muscleGroups: MuscleGroup[];
-}
+/**
+ * Test data generators for E2E workflow tests
+ * Generates unique test data to avoid conflicts
+ */
 
 export interface RoutineData {
   name: string;
   description: string;
+  isActive: boolean;
 }
 
-export interface TestData {
-  userId: string;
-  routine: RoutineData;
-  workoutDays: WorkoutDay[];
-  muscleGroups: MuscleGroup[];
+export interface WorkoutDayData {
+  routineId: number;
+  dayNumber: number;
+  dayName: string;
 }
 
-const MUSCLE_GROUPS: MuscleGroup[] = [
-  { id: 1, name: 'Chest' },
-  { id: 2, name: 'Back' },
-  { id: 3, name: 'Shoulders' },
-  { id: 4, name: 'Biceps' },
-  { id: 5, name: 'Triceps' },
-  { id: 6, name: 'Forearms' },
-  { id: 7, name: 'Quads' },
-  { id: 8, name: 'Hamstrings' },
-  { id: 9, name: 'Calves' },
-  { id: 10, name: 'Abs' },
-];
-
-export function generateTestData(): TestData {
-  const timestamp = Date.now();
-  const userId = `user-${uuidv4()}`;
-
-  return {
-    userId,
-    routine: {
-      name: `Routine-${timestamp}`,
-      description: `Test routine created at ${timestamp}`,
-    },
-    workoutDays: [
-      { dayNumber: 1, name: 'Push Day', muscleGroups: [MUSCLE_GROUPS[0], MUSCLE_GROUPS[2], MUSCLE_GROUPS[4]] },
-      { dayNumber: 2, name: 'Pull Day', muscleGroups: [MUSCLE_GROUPS[1], MUSCLE_GROUPS[3], MUSCLE_GROUPS[5]] },
-      { dayNumber: 3, name: 'Leg Day', muscleGroups: [MUSCLE_GROUPS[6], MUSCLE_GROUPS[7], MUSCLE_GROUPS[8]] },
-    ],
-    muscleGroups: MUSCLE_GROUPS,
-  };
+export interface WorkoutDaySetData {
+  workoutDayId: number;
+  muscleGroupId: number;
+  numberOfSets: number;
 }
 
-export function getMuscleGroupId(name: string, data: TestData): number {
-  const group = data.muscleGroups.find(g => g.name.toLowerCase() === name.toLowerCase());
-  return group?.id || 1;
-}
+export const testData = {
+  /**
+   * Generate unique routine data
+   */
+  generateRoutine: (name?: string): RoutineData => ({
+    name: name || `E2E-Routine-${Date.now()}`,
+    description: 'Generated for E2E workflow testing',
+    isActive: true,
+  }),
 
-export function getAllMuscleGroupIds(data: TestData): number[] {
-  return data.muscleGroups.map(g => g.id);
-}
+  /**
+   * Generate workout day data
+   */
+  generateWorkoutDay: (routineId: number, dayNumber: number, dayName?: string): WorkoutDayData => ({
+    routineId,
+    dayNumber,
+    dayName: dayName || `Day-${dayNumber}`,
+  }),
 
-export function getRandomMuscleGroup(data: TestData): MuscleGroup {
-  const randomIndex = Math.floor(Math.random() * data.muscleGroups.length);
-  return data.muscleGroups[randomIndex];
-}
+  /**
+   * Generate workout day sets data
+   */
+  generateSets: (workoutDayId: number, muscleGroupId: number = 1, numberOfSets: number = 4): WorkoutDaySetData => ({
+    workoutDayId,
+    muscleGroupId,
+    numberOfSets,
+  }),
 
-export function getWorkoutDay(dayNumber: number, data: TestData): WorkoutDay | undefined {
-  return data.workoutDays.find(d => d.dayNumber === dayNumber);
-}
+  /**
+   * Common muscle group IDs
+   */
+  muscleGroups: {
+    CHEST: 1,
+    SHOULDERS: 2,
+    TRICEPS: 3,
+    BACK: 4,
+    BICEPS: 5,
+    LEGS: 6,
+    CORE: 7,
+  },
+};

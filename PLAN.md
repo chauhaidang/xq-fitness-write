@@ -1,596 +1,844 @@
-# E2E API Testing Implementation Plan
+# E2E Testing Implementation Plan - Jest + PactumJS
 
 ## Overview
 
-This document outlines the plan to implement E2E (End-to-End) testing for the XQ Fitness Write Service. The focus is on **API layer testing** with emphasis on **data flow and data correctness** validation across complete workflows.
+This document outlines the plan to implement **E2E (End-to-End) workflow testing** for the XQ Fitness Write Service using **Jest** and **PactumJS**.
 
 **Status**: Planning Phase
 **Target**: Node.js/Express/PostgreSQL stack
-**Scope**: Write Service mutations (POST, PUT, DELETE operations)
+**Focus**: Multi-step user workflows and data flow validation
 
 ---
 
-## 1. Testing Strategy
+## 1. Testing Strategy & Separation of Concerns
 
-### Objectives
+### Test Pyramid
 
-- ✅ Validate complete workflows (e.g., create routine → add workout day → add sets)
-- ✅ Ensure data correctness and persistence in PostgreSQL
-- ✅ Verify request/response contract adherence
-- ✅ Detect transient failures and implement automatic retry logic
-- ✅ Generate comprehensive reports for CI/CD and manual review
-- ✅ Integrate with GitHub Actions for automated testing on push/PR
+```
+           /\
+          /  \        E2E (Jest + PactumJS)
+         /    \       - Multi-step workflows
+        /------\      - Complete user journeys
+       /        \     - Cross-endpoint integration
+      /          \
+     /------------\   Functional (Bruno)
+    /              \  - Individual endpoint testing
+   /                \ - API contract validation
+  /------------------\ Unit (Jest)
+                      - Business logic
+                      - Validators, models
+                      - Pure functions
+```
 
-### Test Scope
+### Layer Definitions
 
-**What We Test:**
-- POST /routines - Create routine
-- PUT /routines/{id} - Update routine
-- DELETE /routines/{id} - Delete routine
-- POST /workout-days - Create workout day
-- PUT /workout-days/{id} - Update workout day
-- DELETE /workout-days/{id} - Delete workout day
-- POST /workout-day-sets - Create sets
-- PUT /workout-day-sets/{id} - Update sets
-- DELETE /workout-day-sets/{id} - Delete sets
-- Multi-step workflows (create routine → add day → add sets)
-
-**Out of Scope (Phase 2):**
-- Performance/load testing
-- Security/authentication testing
-- Read service integration tests
+| Layer | Focus | Technology | Location | Test Type |
+|-------|-------|------------|----------|-----------|
+| **Unit** | Code logic | Jest + Sinon | `test/unit/` | Isolated functions |
+| **Functional** | API contracts | Bruno | `test/functional/` | Single endpoint operations |
+| **E2E** | User workflows | Jest + PactumJS | `test/e2e/` | Multi-step scenarios |
 
 ---
 
-## 2. Technology Stack Selection
+## 2. E2E Testing Scope
 
-### Recommended Stack
+### What We Test in E2E Layer
 
-| Component | Technology | Rationale |
-|-----------|-----------|-----------|
-| **Test Runner** | Jest 29.7+ | Industry standard, excellent ecosystem, great reporting |
-| **API Testing** | PactumJS 3.7+ | Purpose-built for API E2E testing, built-in retry, superior logging |
-| **Language** | TypeScript 5.5+ | Type safety, better DX, easier refactoring |
-| **TS Compilation** | @swc/jest | 5-20x faster than ts-jest, production-ready |
-| **HTML Reports** | jest-html-reporters | Single-page report with logs, request/response capture |
-| **JUnit Reports** | jest-junit | CI/CD standard, GitHub Actions native support |
-| **Logging** | chalk 4.1+ | Colored terminal output, beautiful formatting |
-| **Service Health** | wait-on | Health checks before test execution |
-| **CI/CD** | GitHub Actions | Native integration, artifact upload, test result comments |
+**Focus**: Complete user workflows simulating real-world scenarios
 
-### Why PactumJS Over Supertest?
+✅ **Multi-step workflows:**
+- Create routine → Add workout days → Add sets → Verify complete setup
+- Update routine → Modify days → Update sets → Verify changes
+- Delete workflow → Verify cascade behavior
+- Bulk operations (e.g., PPL split creation)
 
-**Comparison:**
+✅ **Data flow validation:**
+- Data persistence across endpoints
+- State management between requests
+- ID propagation through workflow steps
+- Cascade delete behavior
 
-| Feature | Supertest | PactumJS | Winner |
-|---------|-----------|----------|--------|
-| API-focused | Basic | Comprehensive | **PactumJS** |
-| Built-in retry | ❌ Manual | ✅ Native | **PactumJS** |
-| Request logging | ❌ No | ✅ Yes | **PactumJS** |
-| Response logging | ❌ No | ✅ Yes | **PactumJS** |
-| Workflow testing | ⚠️ Limited | ✅ Excellent | **PactumJS** |
-| Data storage/reuse | ❌ No | ✅ Yes | **PactumJS** |
-| Mock servers | ❌ No | ✅ Yes | **PactumJS** |
-| TypeScript support | ✅ Good | ⚠️ Adequate | Supertest |
-| Community | ✅ Large (7.3M/week) | ⚠️ Small (135k/week) | Supertest |
+✅ **Integration scenarios:**
+- Cross-endpoint dependencies
+- Transaction-like behavior
+- Error recovery in multi-step workflows
 
-**Decision**: PactumJS wins for **data flow and correctness validation** use case
+### What We DON'T Test in E2E Layer
+
+❌ Individual endpoint validation (→ Functional tests in Bruno)
+❌ Request/response schema validation (→ Functional tests)
+❌ 400/404 error scenarios (→ Functional tests)
+❌ Performance/load testing
+❌ Security penetration testing
 
 ---
 
-## 3. Project Structure
+## 3. Technology Stack
 
+### Core Technologies
+
+| Component | Technology | Version | Rationale |
+|-----------|-----------|---------|-----------|
+| **Test Runner** | Jest | 30.2+ | Already in project, excellent ecosystem |
+| **API Client** | PactumJS | 3.7+ | Built for API workflows, data stores, retry logic |
+| **Language** | JavaScript | ES2022 | Match project (no TypeScript overhead) |
+| **Assertions** | Jest matchers + PactumJS | Built-in | Comprehensive assertion library |
+| **Logging** | Custom logger | - | Request/response logging for debugging |
+| **Health Check** | wait-on | 8.0+ | Ensure services ready before tests |
+| **CI/CD** | GitHub Actions | - | Already configured |
+
+### Why PactumJS?
+
+**Key Features for E2E Workflows:**
+- ✅ Built-in data stores (pass IDs between requests)
+- ✅ Automatic retry mechanism for flaky endpoints
+- ✅ Request/response logging
+- ✅ Spec reusability for common patterns
+- ✅ Built-in mock server (if needed for external services)
+- ✅ Fluent API for readable tests
+
+**Comparison with Alternatives:**
+
+| Feature | Supertest | Axios | PactumJS |
+|---------|-----------|-------|----------|
+| Workflow focus | ❌ | ⚠️ | ✅ |
+| Data stores | ❌ | ❌ | ✅ |
+| Auto retry | ❌ | ⚠️ | ✅ |
+| Request logging | ❌ | ⚠️ | ✅ |
+| Mock servers | ❌ | ❌ | ✅ |
+
+---
+
+## 4. Project Structure
+
+### Before (Current)
 ```
 write-service/
-├── tests/
-│   ├── e2e/
-│   │   ├── routines.test.ts                 # Routine CRUD tests
-│   │   ├── workout-days.test.ts             # Workout day CRUD tests
-│   │   ├── workout-day-sets.test.ts         # Sets CRUD tests
-│   │   └── workflows.test.ts                # Multi-step workflow tests
+├── e2e/                                # Standalone Bruno E2E
+│   ├── package.json                    # E2E-specific dependencies
+│   ├── tsconfig.json
+│   ├── .swcrc
 │   ├── helpers/
-│   │   ├── logger.ts                        # Chalk logging setup
-│   │   ├── test-data.ts                     # Test data fixtures
-│   │   └── db-cleanup.ts                    # Database cleanup utilities
-│   ├── setup.ts                             # Jest/Pactum setup
-│   └── teardown.ts                          # Cleanup hooks
-├── jest.config.js                           # Jest configuration
-├── .swcrc                                   # SWC TypeScript compiler config
-├── PLAN.md                                  # This file
+│   │   ├── auth.ts
+│   │   ├── validators.ts
+│   │   └── test-data.ts
+│   └── workflows/                      # Bruno .bru files
+│       └── UpdateDeleteWorkout/
+├── test/
+│   ├── unit/                           # Jest unit tests
+│   └── functional/                     # Bruno functional tests
+└── package.json                        # Root dependencies (API server)
+```
+
+### After (Target)
+```
+write-service/
+├── e2e/                                # Standalone Jest + PactumJS E2E
+│   ├── package.json                    # E2E-specific dependencies (UPDATED)
+│   ├── tsconfig.json                   # TypeScript config (UPDATED)
+│   ├── jest.config.ts                  # Jest config for E2E
+│   ├── README.md                       # E2E documentation (UPDATED)
+│   │
+│   ├── workflows/                      # Test files (TypeScript)
+│   │   ├── create-complete-routine.test.ts
+│   │   ├── update-delete-workflow.test.ts
+│   │   ├── bulk-ppl-setup.test.ts
+│   │   └── cascade-delete.test.ts
+│   │
+│   ├── helpers/                        # Helper utilities (TypeScript)
+│   │   ├── logger.ts                   # Request/response logging
+│   │   ├── test-data.ts                # Test data generators
+│   │   ├── cleanup.ts                  # Database cleanup
+│   │   └── api-client.ts               # PactumJS wrapper
+│   │
+│   ├── setup.ts                        # Global setup (PactumJS config)
+│   └── teardown.ts                     # Global teardown
+│
+├── test/
+│   ├── unit/                           # Jest unit tests (JavaScript)
+│   └── functional/                     # Bruno functional tests
+│
 ├── .github/
 │   └── workflows/
-│       └── e2e-tests.yml                    # GitHub Actions workflow
-├── test-reports/                            # Generated reports (gitignored)
-│   ├── html/
-│   ├── junit/
-│   └── coverage/
-└── package.json                             # Updated with E2E scripts
+│       └── e2e-tests.yml               # E2E CI workflow (UPDATED)
+│
+└── package.json                        # Root dependencies (API server only)
 ```
+
+### Key Changes
+1. ✅ **Keep** `e2e/package.json` (separate dependencies)
+2. ✅ **Replace** Bruno with Jest + PactumJS
+3. ✅ **Keep** TypeScript (`.ts` files)
+4. ✅ **Update** `e2e/package.json` dependencies
+5. ✅ **Remove** `.swcrc` (use ts-jest instead)
+6. ✅ **Remove** Bruno workflows
+7. ✅ **Add** Jest config in `e2e/`
 
 ---
 
-## 4. Implementation Phases
+## 5. Implementation Phases
 
 ### Phase 1: Setup & Infrastructure (Week 1)
 
-**Objective**: Configure testing framework and CI/CD pipeline
+**Objective**: Configure Jest + PactumJS for E2E testing
 
-**Tasks:**
-1. ✅ Research and select technology stack (COMPLETED)
-2. Install dependencies
-   - `jest`, `@swc/jest`, `@swc/core`
-   - `pactum`
-   - `jest-html-reporters`, `jest-junit`
-   - `@types/jest`, `typescript`
-   - `chalk`, `wait-on`
-3. Create Jest configuration
-   - Configure `jest.config.js` with SWC transformer
-   - Configure `.swcrc` for TypeScript
-   - Add reporter plugins (HTML + JUnit)
-   - Set timeouts appropriately (30s for E2E)
-4. Create test setup files
-   - `tests/setup.ts` - Pactum configuration, global retry setup, logging
-   - `tests/helpers/logger.ts` - Chalk-based logging for requests/responses
-   - `tests/helpers/test-data.ts` - Shared test fixtures
-5. Create GitHub Actions workflow
-   - Database service setup
-   - Service health checks
-   - Test execution
-   - Report artifacts upload
-   - Test result comments on PRs
-6. Update `package.json` scripts
-   - `test:e2e` - Run all tests
-   - `test:e2e:watch` - Development mode
-   - `test:e2e:ci` - CI-optimized run
-   - `test:e2e:debug` - Debug mode
+#### Tasks
 
-**Deliverables:**
-- Working Jest + PactumJS setup
-- GitHub Actions workflow
-- Test report structure (HTML + JUnit)
+1. **Install dependencies**
+   ```bash
+   npm install --save-dev pactum wait-on
+   ```
 
----
+2. **Create Jest E2E configuration** (`jest.e2e.config.js`)
+   - Separate config from unit tests
+   - Longer timeout (60s for workflows)
+   - Serial execution (--runInBand)
+   - Setup/teardown files
+   - Coverage exclusions for E2E
 
-### Phase 2: Core Tests (Week 2)
+3. **Create PactumJS setup** (`test/e2e/setup.js`)
+   - Configure base URL
+   - Setup request/response logging
+   - Configure retry logic
+   - Global timeout settings
+   - Custom reporters
 
-**Objective**: Write comprehensive E2E tests for all CRUD operations
+4. **Create helper utilities**
+   - `logger.js` - Colored console logging for requests/responses
+   - `test-data.js` - Test data generators with unique IDs
+   - `cleanup.js` - Database cleanup between tests
+   - `assertions.js` - Custom assertions for workflows
 
-**Tests to Implement:**
+5. **Update package.json scripts**
+   ```json
+   {
+     "test:e2e": "jest --config jest.e2e.config.js --runInBand",
+     "test:e2e:watch": "jest --config jest.e2e.config.js --watch",
+     "test:e2e:ci": "jest --config jest.e2e.config.js --runInBand --ci --coverage",
+     "test:e2e:debug": "node --inspect-brk node_modules/.bin/jest --config jest.e2e.config.js --runInBand"
+   }
+   ```
 
-#### 2.1 Routines Tests (`tests/e2e/routines.test.ts`)
-- ✅ Create routine - valid request
-- ✅ Create routine - validation errors (missing name, invalid data)
-- ✅ Create routine - response schema validation
-- ✅ Update routine - successful update
-- ✅ Update routine - non-existent routine (404)
-- ✅ Delete routine - successful delete
-- ✅ Delete routine - non-existent routine (404)
+6. **Update GitHub Actions** (`.github/workflows/e2e-tests.yml`)
+   - Keep existing PostgreSQL service
+   - Add step to run E2E tests: `npm run test:e2e:ci`
+   - Upload test reports
 
-#### 2.2 Workout Days Tests (`tests/e2e/workout-days.test.ts`)
-- ✅ Create workout day - valid request
-- ✅ Create workout day - validation errors
-- ✅ Create workout day - verify data persisted
-- ✅ Update workout day - successful update
-- ✅ Update workout day - non-existent day (404)
-- ✅ Delete workout day - successful delete
-- ✅ Delete workout day - with associated sets
+#### Deliverables
 
-#### 2.3 Workout Day Sets Tests (`tests/e2e/workout-day-sets.test.ts`)
-- ✅ Create sets - valid request
-- ✅ Create sets - validation errors
-- ✅ Create sets - verify data persisted
-- ✅ Update sets - successful update
-- ✅ Update sets - non-existent sets (404)
-- ✅ Delete sets - successful delete
-
-**Features:**
-- Request/response logging with chalk
-- Response schema validation
-- Data extraction for reuse across tests
-- Retry mechanism for transient 503 errors
-
-**Deliverables:**
-- 20+ passing E2E tests
-- HTML report with logs
-- JUnit XML for CI
+- ✅ Jest + PactumJS configured
+- ✅ Helper utilities ready
+- ✅ npm scripts for E2E tests
+- ✅ CI/CD integration updated
 
 ---
 
-### Phase 3: Workflow Tests (Week 3)
+### Phase 2: Core Workflow Tests (Week 2)
 
-**Objective**: Test complete workflows combining multiple operations
+**Objective**: Implement primary user workflow tests
 
-**Workflows to Test:**
+#### 2.1 Create Complete Routine Workflow
 
-#### 3.1 Create Routine with Complete Setup
-```
-1. POST /routines (create routine) → Store ID
-2. POST /workout-days (add day 1) → Store ID
-3. POST /workout-day-sets (add sets for day 1) → Store ID
-4. POST /workout-days (add day 2) → Store ID
-5. POST /workout-day-sets (add sets for day 2) → Store ID
-6. Verify all data in database
-```
+**File**: `test/e2e/workflows/create-complete-routine.test.js`
 
-#### 3.2 Update and Delete Workflow
-```
-1. Create routine with days and sets
-2. UPDATE routine (name change)
-3. Verify update reflected in reads
-4. DELETE sets
-5. Verify deletion cascade behavior
-6. DELETE day
-7. Verify orphaned sets handling
-```
-
-#### 3.3 Validation Cascade Testing
-```
+**Workflow Steps:**
 1. Create routine
-2. Create day with invalid routineId → Should fail
-3. Create day with valid routineId → Should succeed
-4. Verify relationships persist correctly
-```
+2. Add workout day 1 (e.g., Push Day)
+3. Add sets for day 1
+4. Add workout day 2 (e.g., Pull Day)
+5. Add sets for day 2
+6. Verify all data persisted correctly
 
-**Features:**
-- Multi-step test scenarios
-- Data extraction between steps
-- Automatic retry on 503 errors
-- Comprehensive logging of each step
-- Database state verification between steps
+**Test Coverage:**
+- Data flow across 3 endpoints
+- ID propagation (routine → days → sets)
+- Multiple entities created in sequence
+- Final state verification
 
-**Deliverables:**
-- 10+ workflow tests
-- Enhanced reporting showing test flow
-- Documented workflow patterns
-
----
-
-### Phase 4: CI/CD Integration & Polish (Week 4)
-
-**Objective**: Production-ready testing pipeline
-
-**Tasks:**
-1. GitHub Actions workflow refinement
-   - Database service dependency management
-   - Health check implementation
-   - Artifact retention policies
-   - Test result reporting
-   - PR comment integration
-2. Error handling and reporting
-   - Clear error messages for failed requests
-   - Response body logging on failures
-   - Request/response capture in HTML reports
-3. Documentation
-   - README for test execution
-   - Contributing guide for adding new tests
-   - Troubleshooting guide
-4. Test coverage analysis
-   - Coverage configuration in Jest
-   - Coverage reporting in artifacts
-5. Performance optimization
-   - Parallel test execution considerations
-   - Test ordering and dependencies
-   - Database cleanup between tests
-
-**Deliverables:**
-- Production-ready CI/CD pipeline
-- Comprehensive documentation
-- Test execution metrics
-
----
-
-## 5. Feature Requirements Checklist
-
-### ✅ Test Execution
-- [x] Jest as test runner
-- [x] TypeScript support via @swc/jest
-- [x] Watch mode for development
-- [x] CI mode for GitHub Actions
-- [x] Debug mode support
-
-### ✅ API Testing
-- [x] PactumJS for API requests
-- [x] Request/response logging
-- [x] Response schema validation
-- [x] Data extraction and reuse across tests
-- [x] Workflow/integration testing support
-
-### ✅ Retry Mechanism
-- [x] Automatic retry on 503 errors
-- [x] Exponential backoff support
-- [x] Configurable retry counts and delays
-- [x] Retry status code configuration
-
-### ✅ Reporting
-- [x] One-page HTML report (`jest-html-reporters`)
-  - Request/response logs included
-  - Detailed failure information
-  - Expandable/collapsible test output
-- [x] JUnit XML report (`jest-junit`)
-  - GitHub Actions native support
-  - CI tool integration
-- [x] Console logging with chalk
-  - Color-coded output
-  - Visual hierarchy
-  - Request/response formatting
-
-### ✅ CI/CD Integration
-- [x] GitHub Actions workflow
-  - PostgreSQL service dependency
-  - Service health checks
-  - Test artifact uploads
-  - Test result comments on PRs
-  - Failed test detection
-- [x] Report artifacts
-  - HTML reports stored and accessible
-  - JUnit XML for CI tool parsing
-  - Coverage reports (optional)
-
----
-
-## 6. Configuration Files Overview
-
-### jest.config.js
+**Example Structure:**
 ```javascript
-- SWC transformer for TypeScript
-- Node.js test environment
-- 30 second timeout for E2E tests
-- HTML + JUnit reporters
-- Coverage collection
-- Setup files for initialization
+describe('E2E: Create Complete Routine Workflow', () => {
+  let routineId, day1Id, day2Id;
+
+  test('should create complete workout routine with days and sets', async () => {
+    // Step 1: Create routine
+    routineId = await pactum
+      .spec()
+      .post('/api/v1/routines')
+      .withJson({ name: 'PPL Split', isActive: true })
+      .expectStatus(201)
+      .returns('id');
+
+    // Step 2: Add day 1
+    day1Id = await pactum
+      .spec()
+      .post('/api/v1/workout-days')
+      .withJson({ routineId, dayNumber: 1, dayName: 'Push Day' })
+      .expectStatus(201)
+      .returns('id');
+
+    // Step 3: Add sets for day 1
+    await pactum
+      .spec()
+      .post('/api/v1/workout-day-sets')
+      .withJson({ workoutDayId: day1Id, muscleGroupId: 1, numberOfSets: 4 })
+      .expectStatus(201);
+
+    // ... continue for day 2
+  });
+});
 ```
 
-### .swcrc
-```json
-- TypeScript parsing
-- ES2022 target
-- CommonJS module output
+#### 2.2 Update & Delete Workflow
+
+**File**: `test/e2e/workflows/update-delete-workflow.test.js`
+
+**Workflow Steps:**
+1. Create routine with days and sets
+2. Update routine name
+3. Update workout day
+4. Update sets
+5. Delete sets (verify cascade)
+6. Delete workout day (verify orphan handling)
+7. Delete routine (verify complete cleanup)
+
+**Test Coverage:**
+- Update operations across workflow
+- Delete cascade behavior
+- Data consistency after updates
+- Cleanup verification
+
+#### 2.3 Bulk PPL Setup Workflow
+
+**File**: `test/e2e/workflows/bulk-ppl-setup.test.js`
+
+**Workflow Steps:**
+1. Create PPL routine
+2. Add Push day with 5 exercises
+3. Add Pull day with 5 exercises
+4. Add Leg day with 4 exercises
+5. Verify all 14 exercise sets created
+6. Verify routine structure
+
+**Test Coverage:**
+- Bulk data creation
+- Complex workflow with multiple entities
+- Performance of sequential creates
+
+#### 2.4 Error Recovery in Workflows
+
+**File**: `test/e2e/workflows/error-recovery.test.js`
+
+**Workflow Steps:**
+1. Create routine
+2. Attempt to add day with invalid routineId (should fail)
+3. Retry with correct routineId (should succeed)
+4. Verify partial failure doesn't corrupt data
+
+**Test Coverage:**
+- Error handling in multi-step workflows
+- Data integrity after partial failures
+- Retry logic validation
+
+#### Deliverables
+
+- ✅ 4 workflow test files
+- ✅ 15+ end-to-end test scenarios
+- ✅ Request/response logging enabled
+- ✅ All tests passing locally
+
+---
+
+### Phase 3: Advanced Scenarios (Week 3)
+
+**Objective**: Complex workflows and edge cases
+
+#### 3.1 Cascade Delete Validation
+
+**Workflow:**
+- Create routine with 3 days, each with 5 sets (15 total sets)
+- Delete routine
+- Verify all 3 days deleted (cascade)
+- Verify all 15 sets deleted (cascade)
+
+#### 3.2 Concurrent Workflow Test
+
+**Workflow:**
+- Create 3 routines in parallel (using Promise.all)
+- Verify no ID conflicts
+- Verify all data isolated correctly
+
+#### 3.3 Large Dataset Workflow
+
+**Workflow:**
+- Create routine with 7 workout days
+- Add 5-8 sets per day (35-50 total sets)
+- Update multiple days simultaneously
+- Verify performance and data integrity
+
+#### Deliverables
+
+- ✅ 3 advanced workflow test files
+- ✅ Edge case coverage
+- ✅ Performance baseline established
+
+---
+
+### Phase 4: Polish & Documentation (Week 4)
+
+**Objective**: Production-ready E2E test suite
+
+#### Tasks
+
+1. **Code quality**
+   - Refactor common patterns into helpers
+   - Add JSDoc comments
+   - Consistent error handling
+
+2. **Reporting**
+   - Enhanced console output with colors
+   - Request/response capture in reports
+   - HTML report generation (optional: jest-html-reporters)
+
+3. **Documentation**
+   - **README.md** for E2E tests
+   - How to run tests locally
+   - How to add new workflow tests
+   - Troubleshooting guide
+
+4. **CI/CD optimization**
+   - Parallel test execution exploration
+   - Test result comments on PRs
+   - Artifact retention policies
+
+5. **Performance optimization**
+   - Database connection pooling
+   - Cleanup optimization
+   - Test execution time < 3 minutes
+
+#### Deliverables
+
+- ✅ Production-ready E2E suite
+- ✅ Complete documentation
+- ✅ CI/CD fully integrated
+- ✅ Team training complete
+
+---
+
+## 6. Configuration Files
+
+### jest.e2e.config.js
+
+```javascript
+module.exports = {
+  displayName: 'E2E Tests',
+  testEnvironment: 'node',
+  testMatch: ['**/test/e2e/**/*.test.js'],
+  testTimeout: 60000, // 60 seconds for workflows
+  setupFilesAfterEnv: ['<rootDir>/test/e2e/setup.js'],
+  globalTeardown: '<rootDir>/test/e2e/teardown.js',
+  maxWorkers: 1, // Serial execution for E2E
+  verbose: true,
+  bail: false, // Continue on first failure
+  collectCoverageFrom: [], // No coverage for E2E
+};
 ```
 
-### package.json Scripts
-```json
-"test:e2e": "jest --runInBand --forceExit"
-"test:e2e:watch": "jest --watch"
-"test:e2e:ci": "jest --ci --coverage"
-"test:e2e:debug": "node --inspect-brk node_modules/.bin/jest --runInBand"
+### test/e2e/setup.js
+
+```javascript
+const pactum = require('pactum');
+const { logger } = require('./helpers/logger');
+
+// Configure base URL
+const BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
+pactum.request.setBaseUrl(BASE_URL);
+
+// Enable request/response logging
+pactum.request.setDefaultTimeout(30000);
+
+// Configure retry for transient failures
+pactum.handler.addSpecHandler('withRetry', (ctx) => {
+  const { spec } = ctx;
+  spec.retry({ count: 3, delay: 1000, strategy: 'linear' });
+});
+
+// Custom logging
+pactum.reporter.add({
+  afterSpec(spec) {
+    logger.logRequest(spec.request);
+    logger.logResponse(spec.response);
+  },
+});
+
+// Global setup
+beforeAll(async () => {
+  logger.info('🚀 Starting E2E test suite');
+
+  // Wait for API to be ready
+  const waitOn = require('wait-on');
+  await waitOn({ resources: [`${BASE_URL}/api/v1/health`], timeout: 30000 });
+
+  logger.success('✅ API server ready');
+});
 ```
 
-### .github/workflows/e2e-tests.yml
-```yaml
-- PostgreSQL service
-- Node.js setup with npm caching
-- Wait-on health checks
-- Test execution
-- Artifact upload
-- Test result reporting
+### test/e2e/helpers/logger.js
+
+```javascript
+const chalk = require('chalk'); // Optional: install for colors
+
+const logger = {
+  info: (msg) => console.log(chalk.blue(`ℹ️  ${msg}`)),
+  success: (msg) => console.log(chalk.green(`✅ ${msg}`)),
+  error: (msg) => console.log(chalk.red(`❌ ${msg}`)),
+
+  logRequest: (req) => {
+    console.log(chalk.cyan('\n→ REQUEST'));
+    console.log(`  ${req.method} ${req.url}`);
+    if (req.body) console.log('  Body:', JSON.stringify(req.body, null, 2));
+  },
+
+  logResponse: (res) => {
+    const color = res.statusCode >= 400 ? 'red' : 'green';
+    console.log(chalk[color]('\n← RESPONSE'));
+    console.log(`  Status: ${res.statusCode}`);
+    console.log('  Body:', JSON.stringify(res.body, null, 2));
+  },
+};
+
+module.exports = { logger };
+```
+
+### test/e2e/helpers/test-data.js
+
+```javascript
+const { v4: uuidv4 } = require('uuid'); // Optional: for unique IDs
+
+const testData = {
+  generateRoutine: () => ({
+    name: `E2E-Routine-${Date.now()}`,
+    description: 'Generated for E2E testing',
+    isActive: true,
+  }),
+
+  generateWorkoutDay: (routineId, dayNumber) => ({
+    routineId,
+    dayNumber,
+    dayName: `Day-${dayNumber}`,
+  }),
+
+  generateSets: (workoutDayId, muscleGroupId = 1) => ({
+    workoutDayId,
+    muscleGroupId,
+    numberOfSets: 4,
+  }),
+};
+
+module.exports = { testData };
 ```
 
 ---
 
 ## 7. Dependencies
 
-### Core Testing
-```json
-{
-  "jest": "^29.7.0",
-  "@swc/jest": "^0.2.36",
-  "@swc/core": "^1.7.0",
-  "pactum": "^3.7.1"
-}
+### New Dependencies to Install
+
+```bash
+npm install --save-dev pactum wait-on
 ```
 
-### TypeScript
-```json
-{
-  "typescript": "^5.5.4",
-  "@types/jest": "^29.5.12",
-  "@types/node": "^22.5.0"
-}
+**Optional (for enhanced logging):**
+```bash
+npm install --save-dev chalk
 ```
 
-### Reporting
-```json
-{
-  "jest-html-reporters": "^3.1.7",
-  "jest-junit": "^16.0.0",
-  "chalk": "^4.1.2"
-}
-```
+### Dependency Breakdown
 
-### Utilities
-```json
-{
-  "wait-on": "^8.0.1"
-}
-```
+| Package | Version | Purpose | Size Impact |
+|---------|---------|---------|-------------|
+| pactum | ^3.7.1 | API testing & workflows | ~500KB |
+| wait-on | ^8.0.1 | Service health checks | ~200KB |
+| chalk | ^4.1.2 | Colored console output | ~50KB |
 
-**Total Additional Packages**: 11 dev dependencies
-**Installation**: `npm install --save-dev <packages>`
+**Total Size**: ~750KB (dev dependencies only)
 
 ---
 
-## 8. Example Test Structure
+## 8. Example E2E Test
 
-```typescript
-// tests/e2e/routines.test.ts
+### Complete Workflow Test
 
-import pactum from 'pactum';
+```javascript
+// test/e2e/workflows/create-complete-routine.test.js
 
-const BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000/api/v1';
+const pactum = require('pactum');
+const { testData } = require('../helpers/test-data');
+const { logger } = require('../helpers/logger');
 
-describe('Routines API - CRUD Operations', () => {
-  beforeAll(() => {
-    pactum.request.setBaseUrl(BASE_URL);
-  });
+describe('E2E Workflow: Create Complete Routine', () => {
+  let routineId, pushDayId, pullDayId;
 
-  describe('POST /routines', () => {
-    test('should create routine with valid data', async () => {
+  test('should create complete PPL routine with all days and sets', async () => {
+    logger.info('Starting PPL routine creation workflow');
+
+    // Step 1: Create routine
+    logger.info('Step 1: Creating PPL routine');
+    const routine = await pactum
+      .spec()
+      .post('/api/v1/routines')
+      .withJson(testData.generateRoutine())
+      .expectStatus(201)
+      .expectJsonLike({ id: /.+/, isActive: true })
+      .returns('res.body');
+
+    routineId = routine.id;
+    logger.success(`Routine created with ID: ${routineId}`);
+
+    // Step 2: Create Push Day
+    logger.info('Step 2: Adding Push Day');
+    const pushDay = await pactum
+      .spec()
+      .post('/api/v1/workout-days')
+      .withJson(testData.generateWorkoutDay(routineId, 1))
+      .expectStatus(201)
+      .returns('res.body');
+
+    pushDayId = pushDay.id;
+    logger.success(`Push Day created with ID: ${pushDayId}`);
+
+    // Step 3: Add sets to Push Day
+    logger.info('Step 3: Adding sets to Push Day');
+    const exercises = [
+      { muscleGroupId: 1, numberOfSets: 4 }, // Chest
+      { muscleGroupId: 2, numberOfSets: 3 }, // Shoulders
+      { muscleGroupId: 3, numberOfSets: 3 }, // Triceps
+    ];
+
+    for (const exercise of exercises) {
       await pactum
         .spec()
-        .post('/routines')
-        .withJson({
-          name: 'Full Body Workout',
-          description: 'Complete workout routine',
-          isActive: true,
-        })
-        .retry({ count: 3, delay: 1000, status: [503] })
-        .expectStatus(201)
-        .expectJsonLike({ name: 'Full Body Workout' })
-        .stores('routineId', 'id');
-    });
-
-    test('should reject invalid request', async () => {
-      await pactum
-        .spec()
-        .post('/routines')
-        .withJson({ description: 'Missing name' })
-        .expectStatus(400)
-        .expectJsonLike({ code: 'VALIDATION_ERROR' });
-    });
-  });
-
-  describe('Workflow: Complete routine setup', () => {
-    test('should create routine with days and sets', async () => {
-      // Step 1: Create routine
-      const routineId = await pactum
-        .spec()
-        .post('/routines')
-        .withJson({ name: 'PPL Split', isActive: true })
-        .expectStatus(201)
-        .returns('id');
-
-      // Step 2: Add workout day
-      const dayId = await pactum
-        .spec()
-        .post('/workout-days')
-        .withJson({
-          routineId,
-          dayNumber: 1,
-          dayName: 'Push Day',
-        })
-        .expectStatus(201)
-        .returns('id');
-
-      // Step 3: Add sets
-      await pactum
-        .spec()
-        .post('/workout-day-sets')
-        .withJson({
-          workoutDayId: dayId,
-          muscleGroupId: 1,
-          numberOfSets: 4,
-        })
+        .post('/api/v1/workout-day-sets')
+        .withJson({ workoutDayId: pushDayId, ...exercise })
         .expectStatus(201);
-    });
+    }
+    logger.success('Push Day sets created (3 exercises)');
+
+    // Step 4: Create Pull Day
+    logger.info('Step 4: Adding Pull Day');
+    const pullDay = await pactum
+      .spec()
+      .post('/api/v1/workout-days')
+      .withJson(testData.generateWorkoutDay(routineId, 2))
+      .expectStatus(201)
+      .returns('res.body');
+
+    pullDayId = pullDay.id;
+    logger.success(`Pull Day created with ID: ${pullDayId}`);
+
+    // Step 5: Add sets to Pull Day
+    logger.info('Step 5: Adding sets to Pull Day');
+    const pullExercises = [
+      { muscleGroupId: 4, numberOfSets: 4 }, // Back
+      { muscleGroupId: 5, numberOfSets: 3 }, // Biceps
+    ];
+
+    for (const exercise of pullExercises) {
+      await pactum
+        .spec()
+        .post('/api/v1/workout-day-sets')
+        .withJson({ workoutDayId: pullDayId, ...exercise })
+        .expectStatus(201);
+    }
+    logger.success('Pull Day sets created (2 exercises)');
+
+    // Step 6: Verify complete routine structure
+    logger.info('Step 6: Verifying complete routine structure');
+
+    // Note: This would require a GET endpoint (read-service)
+    // For now, we verify by checking IDs exist
+    expect(routineId).toBeTruthy();
+    expect(pushDayId).toBeTruthy();
+    expect(pullDayId).toBeTruthy();
+
+    logger.success('✅ Complete PPL routine workflow successful!');
+  });
+
+  afterAll(async () => {
+    // Cleanup: Delete created test data
+    if (routineId) {
+      await pactum
+        .spec()
+        .delete(`/api/v1/routines/${routineId}`)
+        .expectStatus(200);
+      logger.info(`Cleaned up routine ${routineId}`);
+    }
   });
 });
 ```
 
 ---
 
-## 9. GitHub Actions Workflow Overview
+## 9. Success Criteria
 
-### Triggers
-- Every push to `main` and `develop` branches
-- Every pull request to `main` and `develop`
+### Phase 1 (Setup)
+- [ ] Jest E2E config created and working
+- [ ] PactumJS configured with retry logic
+- [ ] Helper utilities implemented
+- [ ] npm scripts functional
+- [ ] CI/CD updated to run E2E tests
 
-### Jobs
-1. **Setup**: Node.js, dependencies, PostgreSQL service
-2. **Health Checks**: Verify DB and API readiness
-3. **Test Execution**: Run full E2E test suite
-4. **Reporting**: Generate HTML and JUnit reports
-5. **Artifacts**: Upload reports with 7-day retention
-6. **Notifications**: Comment on PRs with test results
+### Phase 2 (Core Workflows)
+- [ ] Create complete routine workflow test passing
+- [ ] Update/delete workflow test passing
+- [ ] Bulk PPL setup workflow test passing
+- [ ] Error recovery workflow test passing
+- [ ] All tests complete in < 2 minutes locally
 
-### Failure Handling
-- Tests marked as failure if any suite fails
-- Artifacts uploaded even on failure for debugging
-- Service logs captured for troubleshooting
+### Phase 3 (Advanced)
+- [ ] Cascade delete validation working
+- [ ] Concurrent workflow test passing
+- [ ] Large dataset workflow test passing
 
----
-
-## 10. Success Criteria
-
-### Immediate (Phase 1-2)
-- [ ] All CRUD tests passing (20+ tests)
-- [ ] HTML report generated with request/response logs
-- [ ] JUnit XML report generated
-- [ ] GitHub Actions workflow executing successfully
-- [ ] Automatic retry on 503 errors working
-- [ ] All tests run in < 2 minutes
-
-### Medium-term (Phase 3-4)
-- [ ] All workflow tests passing (10+ tests)
-- [ ] Test documentation complete
-- [ ] PR integration working (test comments)
-- [ ] Coverage reporting enabled
-- [ ] Team can easily add new tests
-
-### Long-term Metrics
-- [ ] 100% coverage of write service endpoints
-- [ ] Zero flaky tests (all retries successful)
-- [ ] <30 minute CI/CD execution
-- [ ] Zero test-related PR blocks
+### Phase 4 (Polish)
+- [ ] Documentation complete (README.md)
+- [ ] Code refactored and clean
+- [ ] CI/CD optimized
+- [ ] Team trained on adding new tests
 
 ---
 
-## 11. Timeline & Milestones
+## 10. Timeline
 
-| Phase | Duration | Start | End | Deliverables |
-|-------|----------|-------|-----|--------------|
-| **Phase 1: Setup** | 1 week | Week 1 | Week 1 | Config files, GitHub Actions, npm scripts |
-| **Phase 2: Core Tests** | 1 week | Week 2 | Week 2 | CRUD tests for all 3 resources |
-| **Phase 3: Workflows** | 1 week | Week 3 | Week 3 | Multi-step integration tests |
-| **Phase 4: Polish** | 1 week | Week 4 | Week 4 | Documentation, optimization, handoff |
+| Phase | Duration | Deliverables |
+|-------|----------|--------------|
+| **Phase 1: Setup** | 3-5 days | Jest + PactumJS configured, helpers ready |
+| **Phase 2: Core Workflows** | 5-7 days | 4 workflow test files, 15+ scenarios |
+| **Phase 3: Advanced** | 3-5 days | Edge cases, performance tests |
+| **Phase 4: Polish** | 2-3 days | Documentation, optimization |
 
-**Total Timeline**: 4 weeks to production-ready E2E testing
-
----
-
-## 12. Risks & Mitigation
-
-| Risk | Impact | Mitigation |
-|------|--------|-----------|
-| Database setup complexity in CI | High | Use published Docker image, health checks |
-| Test flakiness (timing issues) | High | Implement retry, wait-on health checks |
-| Slow test execution | Medium | Use --runInBand, optimize queries, parallel suites |
-| PactumJS learning curve | Low | Good documentation, simple API, examples provided |
-| Report storage costs | Low | 7-day retention policy, compress artifacts |
+**Total**: 2-3 weeks to production-ready E2E suite
 
 ---
 
-## 13. Next Steps
+## 11. Migration from Bruno E2E to Jest E2E
 
-1. **Approve this PLAN.md** - Review and confirm approach
-2. **Phase 1 Implementation** - Set up Jest, PactumJS, GitHub Actions
-3. **Phase 2 Implementation** - Write core CRUD tests
-4. **Phase 3 Implementation** - Add workflow tests
-5. **Phase 4 Polish** - Documentation and optimization
-6. **Team Training** - Show team how to add new tests
-7. **Maintenance** - Keep tests updated as API evolves
+### Current State
+- E2E workflows in `e2e/workflows/` using Bruno + TypeScript helpers
+- Functional tests in `test/functional/` using Bruno
+- Separate `e2e/package.json` with standalone dependencies
+
+### Target State
+- **E2E workflows** REPLACED with Jest + PactumJS in `e2e/` (root level)
+- **Functional tests** remain in Bruno (`test/functional/`)
+- **Separate `e2e/package.json`** maintained (keeps E2E dependencies isolated)
+
+### Migration Strategy
+
+#### Step 1: Archive Existing E2E
+```bash
+# Backup current E2E implementation
+mv e2e e2e-bruno-archive
+```
+
+#### Step 2: Remove E2E Dependencies from Root
+- Remove Bruno CLI installation step from CI
+- Keep Bruno only for functional tests in `test/functional/`
+
+#### Step 3: Implement Jest + PactumJS E2E
+- Create `test/e2e/` directory structure
+- Install `pactum` and `wait-on` in root `package.json`
+- Create Jest E2E configuration
+- Migrate existing workflows to Jest tests
+
+#### Step 4: Update CI/CD
+Replace in `.github/workflows/e2e-tests.yml`:
+```yaml
+# OLD: Bruno-based E2E
+- name: Install Bruno CLI
+  run: npm install -g @usebruno/cli
+
+- name: Run E2E workflow tests
+  working-directory: ./e2e
+  run: npm run test:ci
+
+# NEW: Jest + PactumJS E2E
+- name: Run E2E workflow tests
+  run: npm run test:e2e:ci
+```
+
+### Workflow Migration Mapping
+
+Map existing Bruno workflows to new Jest tests:
+
+| Current Bruno Workflow | New Jest Test File | Status |
+|------------------------|-------------------|--------|
+| `e2e/workflows/UpdateDeleteWorkout/` | `test/e2e/workflows/update-delete-workflow.test.js` | To migrate |
+| Future workflow 2 | `test/e2e/workflows/create-complete-routine.test.js` | New |
+| Future workflow 3 | `test/e2e/workflows/bulk-ppl-setup.test.js` | New |
+
+### Benefits of Migration
+
+| Aspect | Bruno E2E | Jest + PactumJS E2E |
+|--------|-----------|---------------------|
+| Workflow complexity | ⚠️ Limited scripting | ✅ Full JavaScript |
+| Debugging | ⚠️ Limited | ✅ Full Node.js debugging with breakpoints |
+| Programmatic control | ⚠️ Basic | ✅ Complete control (loops, conditionals, etc.) |
+| IDE support | ⚠️ Basic | ✅ Full IntelliSense, autocomplete |
+| Dependency management | ⚠️ Separate package.json | ✅ Single package.json |
+| CI/CD integration | ✅ Good | ✅ Excellent (native Jest reporters) |
+| Data manipulation | ⚠️ Limited | ✅ Flexible (full JS capabilities) |
+| Assertions | ✅ Good | ✅ Excellent (Jest matchers + PactumJS) |
+| TypeScript overhead | ⚠️ Requires compilation | ✅ No compilation needed |
+| Maintenance | ⚠️ Separate framework | ✅ Unified with unit tests |
+
+### Migration Checklist
+
+#### Phase 0: Pre-Migration
+- [x] Review existing Bruno E2E workflows
+- [ ] Document current workflow coverage
+- [ ] Archive `e2e/` directory → `e2e-bruno-archive/`
+
+#### Phase 1: Setup (Replace)
+- [ ] Create `test/e2e/` directory structure
+- [ ] Install Jest + PactumJS dependencies in root
+- [ ] Create `jest.e2e.config.js`
+- [ ] Create helper utilities (logger, test-data, cleanup)
+- [ ] Update `.gitignore` to exclude `e2e-bruno-archive/`
+
+#### Phase 2: Migrate Workflows
+- [ ] Migrate UpdateDeleteWorkout workflow to Jest
+- [ ] Add new create-complete-routine workflow
+- [ ] Add new bulk-ppl-setup workflow
+- [ ] Verify all scenarios covered
+
+#### Phase 3: Update CI/CD
+- [ ] Update `.github/workflows/e2e-tests.yml`
+- [ ] Remove Bruno CLI installation
+- [ ] Remove `e2e/` working directory steps
+- [ ] Add Jest E2E test execution
+- [ ] Test CI/CD pipeline
+
+#### Phase 4: Cleanup
+- [ ] Remove `e2e/` directory (after verification)
+- [ ] Update documentation (README.md, CLAUDE.md)
+- [ ] Remove unused Bruno helpers
+- [ ] Update team documentation
 
 ---
 
-## 14. References
+## 12. Next Steps
 
-- **PactumJS**: https://pactumjs.github.io/
-- **Jest**: https://jestjs.io/
-- **SWC**: https://swc.rs/
-- **jest-html-reporters**: https://www.npmjs.com/package/jest-html-reporters
-- **jest-junit**: https://www.npmjs.com/package/jest-junit
-- **GitHub Actions Testing**: https://docs.github.com/en/actions/use-cases-and-examples/testing-code-in-your-repository
-
----
-
-## Approval
-
-- [ ] Product Manager: _____________________ Date: _____
-- [ ] Tech Lead: _____________________ Date: _____
-- [ ] QA Lead: _____________________ Date: _____
+1. **Review and approve plan** ✋
+2. **Phase 1: Setup infrastructure** 🔧
+3. **Phase 2: Implement core workflows** 🚀
+4. **Phase 3: Add advanced scenarios** 📈
+5. **Phase 4: Polish and document** 📝
+6. **Team handoff** 🤝
 
 ---
 
-**Document Version**: 1.0
-**Created**: 2025-11-10
-**Last Updated**: 2025-11-10
-**Status**: Ready for Review
+**Document Version**: 2.0
+**Created**: 2025-11-15
+**Last Updated**: 2025-11-15
+**Status**: Ready for Implementation

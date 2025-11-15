@@ -1,6 +1,23 @@
 const db = require('../config/database');
 
 class WorkoutDaySetModel {
+  /**
+   * Transform database row (snake_case) to API response (camelCase)
+   */
+  static transformRow(row) {
+    if (!row) return null;
+    return {
+      id: row.id,
+      workoutDayId: row.workout_day_id,
+      muscleGroupId: row.muscle_group_id,
+      numberOfSets: row.number_of_sets,
+      notes: row.notes,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+
   static async create(data) {
     const query = `
       INSERT INTO workout_day_sets (workout_day_id, muscle_group_id, number_of_sets, notes)
@@ -14,7 +31,7 @@ class WorkoutDaySetModel {
       data.notes || null
     ];
     const result = await db.query(query, values);
-    return result.rows[0];
+    return this.transformRow(result.rows[0]);
   }
 
   static async update(id, data) {

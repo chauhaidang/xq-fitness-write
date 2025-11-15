@@ -1,28 +1,31 @@
 # E2E Workflow Tests
 
-Standalone E2E testing framework for XQ Fitness Write Service using **Bruno** + **TypeScript helpers**.
+End-to-end workflow tests for XQ Fitness Write Service using **Jest** + **PactumJS** + **TypeScript**.
 
-This is a **completely independent framework** with its own `package.json`, dependencies, and configuration.
+This is a **standalone testing framework** with its own `package.json`, dependencies, and configuration.
 
 ---
 
 ## Quick Start
-Make sure working directory is e2e/
-Start up test environment using `xq-infra generate -f test-env`
-then `xq-infra up`
+
+### Prerequisites
+- Node.js 18+
+- npm 8+
+- API server running (or use test environment)
+
+### Setup
 
 ```bash
-# 1. Install Bruno CLI (global, one-time)
-npm install -g @usebruno/cli
-
-# 2. Navigate to E2E directory
+# 1. Navigate to E2E directory
 cd e2e
 
-# 3. Install dependencies
+# 2. Install dependencies
 npm install
 
-# 4. Build and run tests
-npm run build
+# 3. Start API server (in separate terminal)
+cd .. && npm start
+
+# 4. Run tests
 npm test
 ```
 
@@ -31,13 +34,11 @@ npm test
 ## Commands
 
 ```bash
-npm install              Install dependencies (first time)
-npm run build            Build TypeScript helpers once
-npm run watch            Watch & auto-compile (development)
-npm test                 Run tests locally
-npm run test:local       Run against local API
-npm run test:ci          Run with CI reports (HTML + JUnit)
-npm run test:debug       Stop on first failure
+npm install              # Install dependencies
+npm test                 # Run all E2E workflow tests
+npm run test:watch       # Watch mode for development
+npm run test:ci          # Run with CI reporters (JUnit XML)
+npm run test:debug       # Debug mode with breakpoints
 ```
 
 ---
@@ -46,257 +47,183 @@ npm run test:debug       Stop on first failure
 
 ```
 e2e/
-├── 📄 Configuration
-│   ├── package.json      E2E dependencies & scripts
-│   ├── tsconfig.json     TypeScript config
-│   ├── .swcrc           SWC compiler config
-│   └── .gitignore       Ignore generated .js files
+├── package.json         # E2E-specific dependencies
+├── tsconfig.json        # TypeScript configuration
+├── jest.config.ts       # Jest configuration
+├── README.md            # This file
 │
-├── 📚 Documentation
-│   └── README.md        This file
+├── workflows/           # Test files
+│   ├── create-complete-routine.test.ts
+│   ├── update-delete-workflow.test.ts
+│   ├── bulk-ppl-setup.test.ts
+│   └── cascade-delete.test.ts
 │
-├── 🔧 Helpers (TypeScript utilities - compiled to JS)
-│   ├── auth.ts / auth.js
-│   ├── validators.ts / validators.js
-│   └── test-data.ts / test-data.js
+├── helpers/             # Utility modules
+│   ├── test-data.ts     # Test data generators
+│   ├── api-client.ts    # PactumJS wrapper
+│   └── cleanup.ts       # Test cleanup utilities
 │
-└── 🧪 Workflows (Bruno collections)
-    ├── bruno.json
-    ├── environments/
-    │   ├── local.bru
-    │   └── ci.bru
-    ├── 01-create-routine-complete/ (6 requests)
-    ├── 02-update-delete-workflow/ (5 requests)
-    └── 03-bulk-ppl-setup/ (5 requests)
+├── setup.ts             # Global setup (runs before all tests)
+└── teardown.ts          # Global teardown (runs after all tests)
 ```
 
 ---
 
-## Available Workflows
+## Environment Variables
 
-### 1. Create Routine Complete
-Create a complete workout routine with multiple days and exercise sets.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `API_BASE_URL` | `http://localhost:3000/api/v1` | Base URL for API endpoints |
+| `HEALTH_CHECK_URL` | `http://localhost:3000/health` | Health check endpoint |
 
-**Flow**: Create routine → Add day 1 → Add sets → Add day 2 → Add sets → Verify
+### Example
 
-**Tests**: 18 assertions across 6 requests
+```bash
+# Run tests against different environment
+API_BASE_URL=http://localhost:3000/api/v1 npm test
 
----
-
-### 2. Update and Delete
-CRUD operations on routine and associated data.
-
-**Flow**: Create routine → Add day → Add sets → Update routine → Delete routine
-
-**Tests**: 12 assertions across 5 requests
-
----
-
-### 3. Bulk PPL Setup
-Create a Push/Pull/Legs training split with three workout days.
-
-**Flow**: Create PPL → Add push day → Add pull day → Add leg day → Verify
-
-**Tests**: 12 assertions across 5 requests
-
----
-
-## Helper Functions
-
-### auth.js
-```javascript
-generateAuthToken(secret, userId)  // Generate JWT token
-setAuthHeader(req, token)           // Set Authorization header
-```
-
-### validators.js
-```javascript
-validateResponse(res, status, schema)           // Validate response
-extractValue(res, path)                         // Extract from response
-storeValue(bru, varName, res, path)            // Extract & store variable
-storeMultipleValues(bru, res, mappings)        // Extract multiple values
-```
-
-### test-data.js
-```javascript
-generateTestData()                  // Generate unique test data
-getMuscleGroupId(name, data)       // Get muscle group ID
-getAllMuscleGroupIds(data)         // Get all muscle group IDs
-getRandomMuscleGroup(data)         // Get random muscle group
-getWorkoutDay(dayNumber, data)     // Get workout day by number
+# Run tests via nginx gateway
+API_BASE_URL=http://localhost/xq-fitness-write-service/api/v1 \
+HEALTH_CHECK_URL=http://localhost/xq-fitness-write-service/health \
+npm test
 ```
 
 ---
 
 ## Writing Tests
 
-### Using Helpers in Pre-Request
+### Basic Workflow Test
 
-```javascript
-script:pre-request {
-  const { generateAuthToken, setAuthHeader } = require('./auth.js');
-  const { generateTestData } = require('./test-data.js');
+```typescript
+// workflows/my-workflow.test.ts
 
-  const testData = generateTestData();
-  const token = generateAuthToken(bru.getEnvVar('authSecret'), testData.userId);
-  setAuthHeader(req, token);
+import { testData } from '../helpers/test-data';
+import { ApiClient } from '../helpers/api-client';
+import { Logger } from '@chauhaidang/xq-js-common-kit';
 
-  bru.setVar('routineName', testData.routine.name);
-}
-```
+const logger = new Logger('MyWorkflow');
+const apiClient = new ApiClient(process.env.API_BASE_URL || 'http://localhost:3000/api/v1');
 
-### Using Helpers in Post-Response
+describe('E2E: My Workflow', () => {
+  test('should complete workflow successfully', async () => {
+    logger.info('Starting workflow');
 
-```javascript
-script:post-response {
-  const { validateResponse, storeValue } = require('./validators.js');
+    // Step 1: Create routine
+    const routine = await apiClient.createRoutine(
+      testData.generateRoutine('My PPL Split')
+    );
+    expect(routine.id).toBeDefined();
 
-  validateResponse(res, 201, {
-    id: 'number',
-    name: 'string',
-    isActive: 'boolean'
+    // Step 2: Add workout day
+    const day = await apiClient.createWorkoutDay(
+      testData.generateWorkoutDay(routine.id, 1, 'Push Day')
+    );
+    expect(day.id).toBeDefined();
+
+    // Step 3: Add sets
+    const sets = await apiClient.createWorkoutDaySets(
+      testData.generateSets(day.id, testData.muscleGroups.CHEST, 4)
+    );
+    expect(sets.id).toBeDefined();
+
+    logger.info('✅ Workflow completed');
   });
 
-  storeValue(bru, 'routineId', res, 'id');
-}
-```
-
-### Writing Assertions
-
-```javascript
-tests {
-  test('Routine created successfully', function () {
-    const chai = require('chai');
-    const expect = chai.expect;
-    expect(res.getStatus()).to.equal(201);
-    expect(res.getBody().name).to.contain('Routine-');
+  afterAll(async () => {
+    // Cleanup test data if needed
   });
-}
+});
+```
+
+### Using PactumJS Directly
+
+```typescript
+import pactum from 'pactum';
+
+test('should create routine with custom assertions', async () => {
+  await pactum
+    .spec()
+    .post('/routines')
+    .withJson({ name: 'Test Routine', isActive: true })
+    .expectStatus(201)
+    .expectJsonLike({
+      id: /.+/,
+      name: 'Test Routine',
+      isActive: true
+    })
+    .stores('routineId', 'id'); // Store ID for later use
+});
+```
+
+### Using Cleanup Helper
+
+```typescript
+import { CleanupHelper } from '../helpers/cleanup';
+
+describe('My Test Suite', () => {
+  let cleanup: CleanupHelper;
+
+  beforeEach(() => {
+    cleanup = new CleanupHelper(apiClient);
+  });
+
+  test('my test', async () => {
+    const routine = await apiClient.createRoutine(testData.generateRoutine());
+    cleanup.trackRoutine(routine.id); // Track for cleanup
+
+    // ... rest of test
+  });
+
+  afterEach(async () => {
+    await cleanup.cleanupAll(); // Clean up all tracked resources
+  });
+});
 ```
 
 ---
 
-## Adding New Workflows
+## Test Reports
 
-1. **Create directory**
-   ```bash
-   mkdir -p workflows/04-workflow-name
-   ```
+### Local Development
+Test results are printed to console with colored output.
 
-2. **Create numbered `.bru` files**
-   ```
-   04-workflow-name/
-   ├── 1.Setup.bru
-   ├── 2.Create.bru
-   └── 3.Verify.bru
-   ```
-
-3. **Use helpers in scripts** (see "Writing Tests" section above)
-
-4. **Run tests**
-   ```bash
-   npm test
-   ```
+### CI/CD
+- **JUnit XML**: `./test-reports/e2e-workflows-junit.xml`
+- Uploaded as GitHub Actions artifact
+- Available for 7 days after workflow run
 
 ---
 
-## Built-in Libraries
+## Debugging
 
-Available in Bruno scripts (no installation needed):
-- `chai` - Assertions
-- `axios` - HTTP client
-- `lodash` - Utilities
-- `uuid` - ID generation
-- `crypto` - Cryptographic functions
-- `moment` - Date/time handling
+### VS Code Debug Configuration
 
----
+Add to `.vscode/launch.json`:
 
-## Environments
-
-### Local (`environments/local.bru`)
-```bru
-vars {
-  baseUrl: http://localhost:3000/api/v1
-  authSecret: local-dev-secret-key-12345
+```json
+{
+  "type": "node",
+  "request": "launch",
+  "name": "Debug E2E Tests",
+  "program": "${workspaceFolder}/e2e/node_modules/.bin/jest",
+  "args": [
+    "--runInBand",
+    "--no-cache",
+    "--watchAll=false"
+  ],
+  "cwd": "${workspaceFolder}/e2e",
+  "console": "integratedTerminal",
+  "internalConsoleOptions": "neverOpen"
 }
 ```
 
-### CI (`environments/ci.bru`)
-```bru
-vars {
-  baseUrl: http://localhost:3000/api/v1
-  authSecret: ci-secret-key-98765
-}
-```
-
-Use with: `bru run workflows --env local` or `--env ci`
-
----
-
-## Configuration
-
-### package.json
-E2E-specific dependencies only:
-- `@swc/cli` - TypeScript compiler
-- `@swc/core` - SWC core
-- `typescript` - Type definitions
-- `@types/node` - Node types
-
-Root project has NO E2E dependencies.
-
-### tsconfig.json
-TypeScript strict mode, source maps, CommonJS output.
-
-### .swcrc
-SWC compiler config, fast TypeScript compilation (5-20x faster than ts-jest).
-
----
-
-## Compilation
-
-TypeScript helpers are compiled to JavaScript for Bruno:
+### Command Line Debugging
 
 ```bash
-npm run build         # Build once
-npm run watch         # Auto-compile on changes
+npm run test:debug
 ```
 
-Generated `.js` files are in same directory as `.ts` sources for clean imports:
-```javascript
-const { generateAuthToken } = require('./auth.js');
-```
-
----
-
-## CI/CD Integration
-
-GitHub Actions workflow (`.github/workflows/e2e-tests.yml`):
-1. Installs root dependencies (API server)
-2. Installs E2E dependencies (this framework)
-3. Builds TypeScript helpers
-4. Starts API server
-5. Runs E2E tests
-6. Generates reports (HTML + JUnit XML)
-
-**Triggers**: Push to main/develop, PR to main/develop
-
----
-
-## Git Workflow
-
-**Commit to git**:
-- ✅ `*.ts` (TypeScript sources)
-- ✅ `*.bru` (Bruno collections)
-- ✅ Configuration files (package.json, tsconfig.json, .swcrc)
-- ✅ README.md
-
-**Do NOT commit**:
-- ❌ `*.js` (generated from TypeScript)
-- ❌ `test-reports/` (generated)
-- ❌ `node_modules/` (installed)
-
-(Handled by `.gitignore`)
+Then attach your debugger to the Node process.
 
 ---
 
@@ -304,46 +231,63 @@ GitHub Actions workflow (`.github/workflows/e2e-tests.yml`):
 
 | Issue | Solution |
 |-------|----------|
-| "command not found: bru" | `npm install -g @usebruno/cli` |
-| Compilation errors | `npm run build` to see errors, check `.ts` syntax |
-| "Cannot find module" | Run `npm run build` to compile helpers |
-| Tests pass locally but fail in CI | Check environment variables in `environments/ci.bru` |
-| Port already in use | Change port in environment file or kill process |
+| "Cannot find module" | Run `npm install` in `e2e/` directory |
+| "API server not ready" | Ensure API server is running on port 3000 |
+| "Connection refused" | Check `API_BASE_URL` environment variable |
+| "Tests timeout" | Increase timeout in `jest.config.ts` |
+| TypeScript errors | Run `npx tsc --noEmit` to check for type errors |
 
 ---
 
-## Dependencies
+## CI/CD Integration
 
-### Root Project
-- express, pg, pg-pool, dotenv, cors, joi, nodemon
-- **No testing overhead** ✅
+Tests run automatically on:
+- Push to `main` or `develop` branches
+- Pull requests to `main` or `develop`
 
-### E2E Framework
-- @swc/cli, @swc/core, typescript, @types/node
-- **Completely separate** ✅
+See `.github/workflows/e2e-tests.yml` for workflow configuration.
 
 ---
 
-## Key Points
+## Best Practices
 
-✨ **Standalone** - Own package.json, configuration, dependencies
-⚡ **Fast** - SWC compilation, no testing overhead in root
-📦 **Simple** - Straightforward directory structure
-🔧 **Flexible** - Easy to add more workflows
-🔄 **Independent** - Can upgrade E2E deps without affecting root
-📈 **Scalable** - Pattern for adding other test frameworks later
-
----
-
-## Documentation
-
-- **Architecture & Design**: See root `E2E-PLAN.md`
-- **GitHub Actions**: See `.github/workflows/e2e-tests.yml`
-- **Write Service API**: See root `write-service-api.yaml`
+1. **Test Isolation**: Each test should be independent
+2. **Cleanup**: Always clean up test data in `afterEach` or `afterAll`
+3. **Unique Data**: Use `testData.generateRoutine()` for unique names
+4. **Logging**: Use logger from `@chauhaidang/xq-js-common-kit`
+5. **Assertions**: Verify all critical workflow steps
+6. **Error Handling**: Handle expected failures gracefully
 
 ---
 
-**Framework**: Bruno + TypeScript + SWC
+## Technology Stack
+
+- **Jest 30.2+** - Test runner
+- **PactumJS 3.7+** - API testing framework
+- **TypeScript 5.5+** - Type safety
+- **ts-jest 29.2+** - TypeScript compilation
+- **wait-on 8.0+** - Service health checks
+- **@chauhaidang/xq-js-common-kit** - Internal logging utilities
+
+---
+
+## Contributing
+
+### Adding New Workflows
+
+1. Create new test file in `workflows/`
+2. Follow naming convention: `{workflow-name}.test.ts`
+3. Use helpers from `helpers/` directory
+4. Add cleanup logic in `afterAll` or `afterEach`
+5. Run tests locally before committing
+
+### Updating Helpers
+
+Helper utilities are shared across all tests. Update carefully and test thoroughly.
+
+---
+
+**Status**: ✅ Ready to Use
+**Framework**: Jest + PactumJS + TypeScript
 **Node**: 18+
-**npm**: 8+
-**Status**: Ready to use ✅
+**Last Updated**: 2025-11-15

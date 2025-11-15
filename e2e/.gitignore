@@ -1,26 +1,32 @@
-# Compiled JavaScript from TypeScript
-*.js
+# Dependencies
+node_modules/
 
-# Exceptions: keep these
-!node_modules/
-!node_modules/**/*.js
-
-# Test reports and artifacts
-/test-reports/
-*.html
+# Test reports
+test-reports/
 *.xml
+*.html
 
-# Auto-generated infrastructure files
-xq-compose.yml
-nginx-gateway.conf
+# Coverage
+coverage/
 
-# System files
-.DS_Store
-Thumbs.db
+# TypeScript
+dist/
+*.tsbuildinfo
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local

@@ -1,6 +1,23 @@
 const db = require('../config/database');
 
+
+
 class RoutineModel {
+  /**
+   * Transform database row (snake_case) to API response (camelCase)
+   */
+  static transformRow(row) {
+    if (!row) return null;
+    return {
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      isActive: row.is_active,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
   static async create(data) {
     const query = `
       INSERT INTO workout_routines (name, description, is_active)
@@ -9,7 +26,7 @@ class RoutineModel {
     `;
     const values = [data.name, data.description || null, data.isActive !== false];
     const result = await db.query(query, values);
-    return result.rows[0];
+    return this.transformRow(result.rows[0]);
   }
 
   static async update(id, data) {
@@ -43,7 +60,7 @@ class RoutineModel {
     `;
 
     const result = await db.query(query, values);
-    return result.rows[0];
+    return this.transformRow(result.rows[0]);
   }
 
   static async delete(id) {
