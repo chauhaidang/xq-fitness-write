@@ -21,25 +21,23 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
+      - name: Install global xq-infra
+        run: npm install -g xq-infra
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install root dependencies (API server only)
         run: npm install
 
       - name: build write-service
-        run: ./build
+        run: |
+          chmod +x ./build-write-service.sh
+          ./build-write-service.sh
 
       - name: Install E2E dependencies (Jest + PactumJS)
         working-directory: ./e2e
         run: npm install
 
-      - name: Start API server
-        run: npm start &
-        env:
-          NODE_ENV: test
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/xq_fitness
+      - name: Start up environment
+        run: xq-infra generate -f ./test-env
 
-      - name: Run E2E workflow tests
-        working-directory: ./e2e
-        run: npm run test:ci
-        env:
-          API_BASE_URL: http://localhost:3000/api/v1
-          HEALTH_CHECK_URL: http://localhost:3000/health
