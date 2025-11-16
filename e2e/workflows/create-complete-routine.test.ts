@@ -24,7 +24,7 @@ const apiClient = new ApiClient(process.env.API_BASE_URL || 'http://localhost:80
 
 // Configure read service API client
 const readServiceConfig = new Configuration({
-  basePath: process.env.READ_API_BASE_URL || 'http://localhost:8080/api/v1'
+  basePath: 'http://localhost:8080/xq-fitness-read-service/api/v1'
 });
 const readRoutinesApi = new ReadRoutinesApi(readServiceConfig);
 

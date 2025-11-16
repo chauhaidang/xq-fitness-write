@@ -7,3 +7,4 @@ environment:
   DB_USER: xq_user
   DB_PASSWORD: xq_password
   DB_HOST: xq-fitness-db
+  SPRING_DATASOURCE_URL: jdbc:postgresql://xq-fitness-db:5432/xq_fitness
