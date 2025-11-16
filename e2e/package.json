@@ -28,7 +28,9 @@
     "ts-node": "latest",
     "typescript": "^5.5.4",
     "wait-on": "^8.0.1",
-    "@chauhaidang/xq-js-common-kit": "1.0.7"
+    "@chauhaidang/xq-js-common-kit": "1.0.7",
+    "xq-fitness-write-client": "file:../generated-clients/write-service",
+    "xq-fitness-read-client": "file:../generated-clients/read-service"
   },
   "jest-junit": {
     "outputDirectory": "./tsr",

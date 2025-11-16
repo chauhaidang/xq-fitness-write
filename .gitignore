@@ -3,3 +3,7 @@ node_modules
 .idea
 xq-compose.yml
 nginx-gateway.conf
+
+# Generated API client artifacts
+.tmp/
+generated-clients/

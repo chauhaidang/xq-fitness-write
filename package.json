@@ -8,7 +8,10 @@
     "dev": "nodemon src/index.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
-    "test:unit": "jest test/unit"
+    "test:unit": "jest test/unit",
+    "generate:client": "./scripts/generate-api-client.sh",
+    "generate:client:write": "./scripts/generate-api-client.sh write-service",
+    "clean:clients": "rm -rf generated-clients/"
   },
   "keywords": [
     "fitness",
