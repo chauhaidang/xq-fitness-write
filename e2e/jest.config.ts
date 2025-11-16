@@ -21,14 +21,7 @@ const config: Config = {
   },
   moduleNameMapper: {
     '^@helpers/(.*)$': '<rootDir>/helpers/$1',
-  },
-  reporters: [
-    'default',
-    ['jest-junit', {
-      outputDirectory: './test-reports',
-      outputName: 'e2e-workflows-junit.xml',
-    }],
-  ],
+  }
 };
 
 export default config;
