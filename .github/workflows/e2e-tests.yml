@@ -42,7 +42,7 @@ jobs:
         working-directory: ./e2e
         run: npm install
         env:
-          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Start up environment
         run: xq-infra generate -f ./test-env
