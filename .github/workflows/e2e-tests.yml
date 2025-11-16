@@ -61,6 +61,6 @@ jobs:
       - name: Present tsr
         if: success() || failure()
         working-directory: ./e2e
-        run: cat report.md >> $GITHUB_STEP_SUMMARY
+        run: cat ./tsr/report.md >> $GITHUB_STEP_SUMMARY
 
 
