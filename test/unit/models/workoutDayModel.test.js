@@ -12,17 +12,19 @@ describe('WorkoutDayModel', () => {
   describe('create', () => {
     describe('Happy path', () => {
       it('should create a workout day with all fields', async () => {
-        const mockWorkoutDay = {
+        const createdAt = new Date();
+        const updatedAt = new Date();
+        const mockDbRow = {
           id: 1,
           routine_id: 5,
           day_number: 1,
           day_name: 'Push Day',
           notes: 'Focus on chest',
-          created_at: new Date(),
-          updated_at: new Date(),
+          created_at: createdAt,
+          updated_at: updatedAt,
         };
 
-        db.query.mockResolvedValue({ rows: [mockWorkoutDay] });
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = {
           routineId: 5,
@@ -40,11 +42,19 @@ describe('WorkoutDayModel', () => {
           'Push Day',
           'Focus on chest',
         ]);
-        expect(result).toEqual(mockWorkoutDay);
+        expect(result).toEqual({
+          id: 1,
+          routineId: 5,
+          dayNumber: 1,
+          dayName: 'Push Day',
+          notes: 'Focus on chest',
+          createdAt: createdAt,
+          updatedAt: updatedAt,
+        });
       });
 
       it('should create a workout day with only required fields', async () => {
-        const mockWorkoutDay = {
+        const mockDbRow = {
           id: 2,
           routine_id: 10,
           day_number: 3,
@@ -52,7 +62,7 @@ describe('WorkoutDayModel', () => {
           notes: null,
         };
 
-        db.query.mockResolvedValue({ rows: [mockWorkoutDay] });
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = {
           routineId: 10,
@@ -68,7 +78,13 @@ describe('WorkoutDayModel', () => {
           'Leg Day',
           null,
         ]);
-        expect(result).toEqual(mockWorkoutDay);
+        expect(result).toEqual({
+          id: 2,
+          routineId: 10,
+          dayNumber: 3,
+          dayName: 'Leg Day',
+          notes: null,
+        });
       });
 
       it('should convert undefined notes to null', async () => {
@@ -129,7 +145,7 @@ describe('WorkoutDayModel', () => {
 
         await WorkoutDayModel.create(data);
 
-        expect(db.query).toHaveBeenCalledWith(expect.any(String), [1, 1, 'Test', '']);
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), [1, 1, 'Test', null]);
       });
     });
 
@@ -179,7 +195,7 @@ describe('WorkoutDayModel', () => {
         });
       });
 
-      it('should handle database returning no rows', async () => {
+      it('should return null when database returns no rows', async () => {
         db.query.mockResolvedValue({ rows: [] });
 
         const data = {
@@ -189,7 +205,7 @@ describe('WorkoutDayModel', () => {
         };
 
         const result = await WorkoutDayModel.create(data);
-        expect(result).toBeUndefined();
+        expect(result).toBeNull();
       });
     });
   });
@@ -197,7 +213,7 @@ describe('WorkoutDayModel', () => {
   describe('update', () => {
     describe('Happy path', () => {
       it('should update all fields', async () => {
-        const mockWorkoutDay = {
+        const mockDbRow = {
           id: 1,
           routine_id: 5,
           day_number: 2,
@@ -206,7 +222,7 @@ describe('WorkoutDayModel', () => {
           updated_at: new Date(),
         };
 
-        db.query.mockResolvedValue({ rows: [mockWorkoutDay] });
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = {
           dayNumber: 2,
@@ -225,7 +241,7 @@ describe('WorkoutDayModel', () => {
           expect.stringContaining('updated_at = CURRENT_TIMESTAMP'),
           expect.any(Array)
         );
-        expect(result).toEqual(mockWorkoutDay);
+        expect(result).toEqual(mockDbRow);
       });
 
       it('should update only dayNumber', async () => {
@@ -325,7 +341,7 @@ describe('WorkoutDayModel', () => {
         expect(db.query).toHaveBeenCalledWith(expect.stringContaining('RETURNING *'), expect.any(Array));
       });
 
-      it('should always update updated_at timestamp', async () => {
+      it('should always update updatedAt timestamp', async () => {
         const mockWorkoutDay = { id: 7 };
         db.query.mockResolvedValue({ rows: [mockWorkoutDay] });
 
@@ -520,12 +536,12 @@ describe('WorkoutDayModel', () => {
         await expect(WorkoutDayModel.exists(1)).rejects.toThrow('Database error');
       });
 
-      it('should handle database returning no rows', async () => {
+      it('should return false when database returns no rows', async () => {
         db.query.mockResolvedValue({ rows: [] });
 
         const result = await WorkoutDayModel.exists(1);
 
-        expect(result).toBeUndefined();
+        expect(result).toBe(false);
       });
     });
 

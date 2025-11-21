@@ -70,7 +70,7 @@ class RoutineModel {
   static async exists(id) {
     const query = 'SELECT EXISTS(SELECT 1 FROM workout_routines WHERE id = $1)';
     const result = await db.query(query, [id]);
-    return result.rows[0].exists;
+    return result?.rows?.[0]?.exists || false;
   }
 }
 

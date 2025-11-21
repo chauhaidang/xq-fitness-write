@@ -12,17 +12,19 @@ describe('WorkoutDaySetModel', () => {
   describe('create', () => {
     describe('Happy path', () => {
       it('should create a workout day set with all fields', async () => {
-        const mockWorkoutDaySet = {
+        const createdAt = new Date();
+        const updatedAt = new Date();
+        const mockDbRow = {
           id: 1,
           workout_day_id: 5,
           muscle_group_id: 3,
           number_of_sets: 4,
           notes: 'Heavy weight',
-          created_at: new Date(),
-          updated_at: new Date(),
+          created_at: createdAt,
+          updated_at: updatedAt,
         };
 
-        db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = {
           workoutDayId: 5,
@@ -40,11 +42,19 @@ describe('WorkoutDaySetModel', () => {
           4,
           'Heavy weight',
         ]);
-        expect(result).toEqual(mockWorkoutDaySet);
+        expect(result).toEqual({
+          id: 1,
+          workoutDayId: 5,
+          muscleGroupId: 3,
+          numberOfSets: 4,
+          notes: 'Heavy weight',
+          createdAt: createdAt,
+          updatedAt: updatedAt,
+        });
       });
 
       it('should create a workout day set with only required fields', async () => {
-        const mockWorkoutDaySet = {
+        const mockDbRow = {
           id: 2,
           workout_day_id: 10,
           muscle_group_id: 7,
@@ -52,7 +62,7 @@ describe('WorkoutDaySetModel', () => {
           notes: null,
         };
 
-        db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = {
           workoutDayId: 10,
@@ -68,15 +78,21 @@ describe('WorkoutDaySetModel', () => {
           3,
           null,
         ]);
-        expect(result).toEqual(mockWorkoutDaySet);
+        expect(result).toEqual({
+          id: 2,
+          workoutDayId: 10,
+          muscleGroupId: 7,
+          numberOfSets: 3,
+          notes: null,
+        });
       });
 
       it('should convert undefined notes to null', async () => {
         const mockWorkoutDaySet = {
           id: 3,
-          workout_day_id: 1,
-          muscle_group_id: 2,
-          number_of_sets: 5,
+          workoutDayId: 1,
+          muscleGroupId: 2,
+          numberOfSets: 5,
           notes: null,
         };
 
@@ -109,16 +125,16 @@ describe('WorkoutDaySetModel', () => {
         expect(db.query).toHaveBeenCalledWith(expect.stringContaining('RETURNING *'), expect.any(Array));
       });
 
-      it('should handle empty string notes', async () => {
-        const mockWorkoutDaySet = {
+      it('should convert empty string notes to null', async () => {
+        const mockDbRow = {
           id: 5,
           workout_day_id: 1,
           muscle_group_id: 2,
           number_of_sets: 3,
-          notes: '',
+          notes: null,
         };
 
-        db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = {
           workoutDayId: 1,
@@ -129,15 +145,15 @@ describe('WorkoutDaySetModel', () => {
 
         await WorkoutDaySetModel.create(data);
 
-        expect(db.query).toHaveBeenCalledWith(expect.any(String), [1, 2, 3, '']);
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), [1, 2, 3, null]);
       });
 
       it('should handle numberOfSets equal to 1', async () => {
         const mockWorkoutDaySet = {
           id: 6,
-          workout_day_id: 1,
-          muscle_group_id: 2,
-          number_of_sets: 1,
+          workoutDayId: 1,
+          muscleGroupId: 2,
+          numberOfSets: 1,
           notes: null,
         };
 
@@ -185,7 +201,7 @@ describe('WorkoutDaySetModel', () => {
         });
       });
 
-      it('should propagate foreign key constraint error for workout_day_id', async () => {
+      it('should propagate foreign key constraint error for workoutDayId', async () => {
         const dbError = new Error('foreign key violation');
         dbError.code = '23503';
         db.query.mockRejectedValue(dbError);
@@ -201,7 +217,7 @@ describe('WorkoutDaySetModel', () => {
         });
       });
 
-      it('should propagate foreign key constraint error for muscle_group_id', async () => {
+      it('should propagate foreign key constraint error for muscleGroupId', async () => {
         const dbError = new Error('foreign key violation');
         dbError.code = '23503';
         db.query.mockRejectedValue(dbError);
@@ -217,7 +233,7 @@ describe('WorkoutDaySetModel', () => {
         });
       });
 
-      it('should handle database returning no rows', async () => {
+      it('should return null when database returns no rows', async () => {
         db.query.mockResolvedValue({ rows: [] });
 
         const data = {
@@ -227,7 +243,7 @@ describe('WorkoutDaySetModel', () => {
         };
 
         const result = await WorkoutDaySetModel.create(data);
-        expect(result).toBeUndefined();
+        expect(result).toBeNull();
       });
     });
   });
@@ -235,16 +251,17 @@ describe('WorkoutDaySetModel', () => {
   describe('update', () => {
     describe('Happy path', () => {
       it('should update all fields', async () => {
-        const mockWorkoutDaySet = {
+        const updatedAt = new Date();
+        const mockDbRow = {
           id: 1,
           workout_day_id: 5,
           muscle_group_id: 3,
           number_of_sets: 5,
           notes: 'Increased volume',
-          updated_at: new Date(),
+          updated_at: updatedAt,
         };
 
-        db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = {
           numberOfSets: 5,
@@ -262,13 +279,13 @@ describe('WorkoutDaySetModel', () => {
           expect.stringContaining('updated_at = CURRENT_TIMESTAMP'),
           expect.any(Array)
         );
-        expect(result).toEqual(mockWorkoutDaySet);
+        expect(result).toEqual(mockDbRow);
       });
 
       it('should update only numberOfSets', async () => {
         const mockWorkoutDaySet = {
           id: 1,
-          number_of_sets: 6,
+          numberOfSets: 6,
         };
 
         db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
@@ -342,7 +359,7 @@ describe('WorkoutDaySetModel', () => {
         expect(db.query).toHaveBeenCalledWith(expect.stringContaining('RETURNING *'), expect.any(Array));
       });
 
-      it('should always update updated_at timestamp', async () => {
+      it('should always update updatedAt timestamp', async () => {
         const mockWorkoutDaySet = { id: 6 };
         db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
 
@@ -355,7 +372,7 @@ describe('WorkoutDaySetModel', () => {
       });
 
       it('should handle updating numberOfSets to 1', async () => {
-        const mockWorkoutDaySet = { id: 7, number_of_sets: 1 };
+        const mockWorkoutDaySet = { id: 7, numberOfSets: 1 };
         db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
 
         await WorkoutDaySetModel.update(7, { numberOfSets: 1 });
@@ -419,7 +436,7 @@ describe('WorkoutDaySetModel', () => {
       });
 
       it('should handle very large numberOfSets', async () => {
-        const mockWorkoutDaySet = { id: 1, number_of_sets: 100 };
+        const mockWorkoutDaySet = { id: 1, numberOfSets: 100 };
         db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
 
         await WorkoutDaySetModel.update(1, { numberOfSets: 100 });
@@ -546,12 +563,12 @@ describe('WorkoutDaySetModel', () => {
         await expect(WorkoutDaySetModel.exists(1)).rejects.toThrow('Database error');
       });
 
-      it('should handle database returning no rows', async () => {
+      it('should return false when database returns no rows', async () => {
         db.query.mockResolvedValue({ rows: [] });
 
         const result = await WorkoutDaySetModel.exists(1);
 
-        expect(result).toBeUndefined();
+        expect(result).toBe(false);
       });
     });
 

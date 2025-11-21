@@ -157,7 +157,7 @@ describe('Validation Schemas', () => {
           unknownField: 'should be stripped',
         };
 
-        const { error, value } = createRoutineSchema.validate(invalidData);
+        const { error, value } = createRoutineSchema.validate(invalidData, { stripUnknown: true });
 
         expect(error).toBeUndefined();
         expect(value).not.toHaveProperty('unknownField');

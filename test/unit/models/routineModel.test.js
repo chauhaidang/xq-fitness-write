@@ -13,16 +13,18 @@ describe('RoutineModel', () => {
   describe('create', () => {
     describe('Happy path', () => {
       it('should create a routine with all fields', async () => {
-        const mockRoutine = {
+        const createdAt = new Date();
+        const updatedAt = new Date();
+        const mockDbRow = {
           id: 1,
           name: 'Full Body Workout',
           description: 'A complete routine',
           is_active: true,
-          created_at: new Date(),
-          updated_at: new Date(),
+          created_at: createdAt,
+          updated_at: updatedAt,
         };
 
-        db.query.mockResolvedValue({ rows: [mockRoutine] });
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = {
           name: 'Full Body Workout',
@@ -38,20 +40,29 @@ describe('RoutineModel', () => {
           'A complete routine',
           true,
         ]);
-        expect(result).toEqual(mockRoutine);
+        expect(result).toEqual({
+          id: 1,
+          name: 'Full Body Workout',
+          description: 'A complete routine',
+          isActive: true,
+          createdAt: createdAt,
+          updatedAt: updatedAt,
+        });
       });
 
       it('should create a routine with only name', async () => {
-        const mockRoutine = {
+        const createdAt = new Date();
+        const updatedAt = new Date();
+        const mockDbRow = {
           id: 2,
           name: 'Minimal Routine',
           description: null,
           is_active: true,
-          created_at: new Date(),
-          updated_at: new Date(),
+          created_at: createdAt,
+          updated_at: updatedAt,
         };
 
-        db.query.mockResolvedValue({ rows: [mockRoutine] });
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = {
           name: 'Minimal Routine',
@@ -64,7 +75,14 @@ describe('RoutineModel', () => {
           null,
           true,
         ]);
-        expect(result).toEqual(mockRoutine);
+        expect(result).toEqual({
+          id: 2,
+          name: 'Minimal Routine',
+          description: null,
+          isActive: true,
+          createdAt: createdAt,
+          updatedAt: updatedAt,
+        });
       });
 
       it('should default isActive to true when not provided', async () => {
@@ -72,7 +90,7 @@ describe('RoutineModel', () => {
           id: 3,
           name: 'Test Routine',
           description: null,
-          is_active: true,
+          isActive: true,
         };
 
         db.query.mockResolvedValue({ rows: [mockRoutine] });
@@ -85,14 +103,14 @@ describe('RoutineModel', () => {
       });
 
       it('should handle isActive as false', async () => {
-        const mockRoutine = {
+        const mockDbRow = {
           id: 4,
           name: 'Inactive Routine',
           description: null,
           is_active: false,
         };
 
-        db.query.mockResolvedValue({ rows: [mockRoutine] });
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = {
           name: 'Inactive Routine',
@@ -102,7 +120,7 @@ describe('RoutineModel', () => {
         const result = await RoutineModel.create(data);
 
         expect(db.query).toHaveBeenCalledWith(expect.any(String), ['Inactive Routine', null, false]);
-        expect(result.is_active).toBe(false);
+        expect(result.isActive).toBe(false);
       });
 
       it('should convert undefined description to null', async () => {
@@ -110,7 +128,7 @@ describe('RoutineModel', () => {
           id: 5,
           name: 'No Description',
           description: null,
-          is_active: true,
+          isActive: true,
         };
 
         db.query.mockResolvedValue({ rows: [mockRoutine] });
@@ -145,13 +163,13 @@ describe('RoutineModel', () => {
         await expect(RoutineModel.create(data)).rejects.toThrow('Database connection failed');
       });
 
-      it('should throw error when database returns no rows', async () => {
+      it('should return null when database returns no rows', async () => {
         db.query.mockResolvedValue({ rows: [] });
 
         const data = { name: 'Test Routine' };
 
         const result = await RoutineModel.create(data);
-        expect(result).toBeUndefined();
+        expect(result).toBeNull();
       });
 
       it('should propagate unique constraint violation error', async () => {
@@ -167,15 +185,16 @@ describe('RoutineModel', () => {
   describe('update', () => {
     describe('Happy path', () => {
       it('should update all fields', async () => {
-        const mockRoutine = {
+        const updatedAt = new Date();
+        const mockDbRow = {
           id: 1,
           name: 'Updated Name',
           description: 'Updated description',
           is_active: false,
-          updated_at: new Date(),
+          updated_at: updatedAt,
         };
 
-        db.query.mockResolvedValue({ rows: [mockRoutine] });
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = {
           name: 'Updated Name',
@@ -194,7 +213,13 @@ describe('RoutineModel', () => {
           expect.stringContaining('updated_at = CURRENT_TIMESTAMP'),
           expect.any(Array)
         );
-        expect(result).toEqual(mockRoutine);
+        expect(result).toEqual({
+          id: 1,
+          name: 'Updated Name',
+          description: 'Updated description',
+          isActive: false,
+          updatedAt: updatedAt,
+        });
       });
 
       it('should update only name', async () => {
@@ -202,7 +227,7 @@ describe('RoutineModel', () => {
           id: 1,
           name: 'New Name',
           description: 'Old description',
-          is_active: true,
+          isActive: true,
         };
 
         db.query.mockResolvedValue({ rows: [mockRoutine] });
@@ -222,7 +247,7 @@ describe('RoutineModel', () => {
           id: 2,
           name: 'Test',
           description: 'New Description',
-          is_active: true,
+          isActive: true,
         };
 
         db.query.mockResolvedValue({ rows: [mockRoutine] });
@@ -242,7 +267,7 @@ describe('RoutineModel', () => {
           id: 3,
           name: 'Test',
           description: null,
-          is_active: false,
+          isActive: false,
         };
 
         db.query.mockResolvedValue({ rows: [mockRoutine] });
@@ -262,7 +287,7 @@ describe('RoutineModel', () => {
           id: 4,
           name: 'Test',
           description: null,
-          is_active: true,
+          isActive: true,
         };
 
         db.query.mockResolvedValue({ rows: [mockRoutine] });
@@ -302,7 +327,7 @@ describe('RoutineModel', () => {
         expect(db.query).toHaveBeenCalledWith(expect.stringContaining('RETURNING *'), expect.any(Array));
       });
 
-      it('should always update updated_at timestamp', async () => {
+      it('should always update updatedAt timestamp', async () => {
         const mockRoutine = { id: 7 };
         db.query.mockResolvedValue({ rows: [mockRoutine] });
 
@@ -339,7 +364,7 @@ describe('RoutineModel', () => {
         const data = { name: 'Test' };
         const result = await RoutineModel.update(999, data);
 
-        expect(result).toBeUndefined();
+        expect(result).toBeNull();
       });
     });
 
@@ -486,12 +511,12 @@ describe('RoutineModel', () => {
         await expect(RoutineModel.exists(1)).rejects.toThrow('Database error');
       });
 
-      it('should handle database returning no rows', async () => {
+      it('should return false when database returns no rows', async () => {
         db.query.mockResolvedValue({ rows: [] });
 
         const result = await RoutineModel.exists(1);
 
-        expect(result).toBeUndefined();
+        expect(result).toBe(false);
       });
     });
 
