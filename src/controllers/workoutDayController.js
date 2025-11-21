@@ -18,7 +18,8 @@ class WorkoutDayController {
       res.status(201).json(workoutDay);
     } catch (error) {
       console.error('Error creating workout day:', error);
-      if (error.code === '23505') { // Unique constraint violation
+      if (error.code === '23505') {
+        // Unique constraint violation
         return res.status(400).json({
           code: 'DUPLICATE_ERROR',
           message: 'A workout day with this day number already exists for this routine',

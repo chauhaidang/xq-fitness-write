@@ -8,7 +8,15 @@
     "dev": "nodemon src/index.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
-    "test:unit": "jest test/unit",
+    "test:unit": "jest --config jest.config.unit.js --coverage",
+    "test:component": "jest --config jest.config.component.js --runInBand",
+    "test:component:watch": "jest --config jest.config.component.js --watch",
+    "test:component:ci": "jest --config jest.config.component.js --runInBand --ci --reporters=default --reporters=jest-junit",
+    "test:all": "npm run test:unit && npm run test:component",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,json,md}\"",
+    "lint": "eslint . --ext .ts,.js",
+    "lint:fix": "eslint . --ext .ts,.js --fix",
     "generate:client": "./scripts/generate-api-client.sh",
     "generate:client:write": "./scripts/generate-api-client.sh write-service",
     "clean:clients": "rm -rf generated-clients/"
@@ -29,24 +37,31 @@
     "pg-pool": "^3.6.1"
   },
   "devDependencies": {
+    "@chauhaidang/xq-js-common-kit": "file:../../../xq-js-common-kit",
     "@types/jest": "^30.0.0",
+    "@types/node": "^22.5.0",
+    "@types/wait-on": "^5.3.4",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
     "jest": "^30.2.0",
+    "jest-junit": "^16.0.0",
     "nodemon": "^3.0.2",
-    "supertest": "^7.1.4"
+    "prettier": "^3.2.0",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.2.0",
+    "ts-node": "latest",
+    "typescript": "^5.5.4",
+    "wait-on": "^8.0.1",
+    "xq-fitness-write-client": "file:./generated-clients/write-service"
   },
-  "jest": {
-    "testEnvironment": "node",
-    "coverageDirectory": "./coverage",
-    "collectCoverageFrom": [
-      "src/**/*.js",
-      "!src/index.js",
-      "!src/config/database.js"
-    ],
-    "testMatch": [
-      "**/test/unit/**/*.test.js"
-    ],
-    "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/src/$1"
-    }
+  "jest-junit": {
+    "outputDirectory": "./test/component/tsr",
+    "outputName": "junit.xml",
+    "classNameTemplate": "{classname}",
+    "titleTemplate": "{title}",
+    "ancestorSeparator": " › ",
+    "usePathForSuiteName": "true"
   }
 }

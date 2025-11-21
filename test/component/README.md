@@ -1,32 +1,32 @@
-# E2E Workflow Tests
+# Component Tests
 
-End-to-end workflow tests for XQ Fitness Write Service using **Jest** + **PactumJS** + **TypeScript**.
+Component tests for XQ Fitness Write Service using **Jest** + **TypeScript** + **Generated API Client**.
 
-This is a **standalone testing framework** with its own `package.json`, dependencies, and configuration.
+Tests are managed from the root package.json with centralized dependencies and configuration.
 
 ---
 
 ## Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - npm 8+
-- API server running (or use test environment)
+- Write Service running on port 3000
 
 ### Setup
 
 ```bash
-# 1. Navigate to E2E directory
-cd e2e
+# From write-service root directory:
 
-# 2. Install dependencies
+# 1. Install dependencies (if not already done)
 npm install
 
-# 3. Start API server (in separate terminal)
-cd .. && npm start
+# 2. Start Write Service (in separate terminal)
+npm start
 
-# 4. Run tests
-npm test
+# 3. Run component tests
+npm run test:component
 ```
 
 ---
@@ -34,11 +34,12 @@ npm test
 ## Commands
 
 ```bash
-npm install              # Install dependencies
-npm test                 # Run all E2E workflow tests
-npm run test:watch       # Watch mode for development
-npm run test:ci          # Run with CI reporters (JUnit XML)
-npm run test:debug       # Debug mode with breakpoints
+# From write-service root:
+npm run test:component          # Run all component tests
+npm run test:component:watch    # Watch mode for development
+npm run test:component:ci       # Run with CI reporters (JUnit XML)
+npm run format                  # Format all code with Prettier
+npm run lint                    # Lint all code with ESLint
 ```
 
 ---
@@ -46,35 +47,38 @@ npm run test:debug       # Debug mode with breakpoints
 ## Directory Structure
 
 ```
-e2e/
-├── package.json         # E2E-specific dependencies
-├── tsconfig.json        # TypeScript configuration
-├── jest.config.ts       # Jest configuration
-├── README.md            # This file
+write-service/                   # Root directory
+├── package.json                 # Centralized dependencies
+├── jest.config.component.js     # Component test Jest config
+├── tsconfig.json                # TypeScript configuration
+├── .prettierrc.json             # Prettier configuration
+├── .eslintrc.json               # ESLint configuration
+├── test-env/                    # Test environment configs
 │
-├── workflows/           # Test files
-│   ├── create-complete-routine.test.ts
-│   ├── update-delete-workflow.test.ts
-│   ├── bulk-ppl-setup.test.ts
-│   └── cascade-delete.test.ts
-│
-├── helpers/             # Utility modules
-│   ├── test-data.ts     # Test data generators
-│   ├── api-client.ts    # PactumJS wrapper
-│   └── cleanup.ts       # Test cleanup utilities
-│
-├── setup.ts             # Global setup (runs before all tests)
-└── teardown.ts          # Global teardown (runs after all tests)
+└── test/component/
+    ├── README.md                # This file
+    │
+    ├── workflows/               # Test files
+    │   └── create-complete-routine.test.ts
+    │
+    ├── helpers/                 # Utility modules
+    │   ├── test-data.ts         # Test data generators
+    │   ├── api-client.ts        # Write Service API client wrapper
+    │   └── cleanup.ts           # Test cleanup utilities
+    │
+    ├── setup.ts                 # Global setup (runs before all tests)
+    ├── teardown.ts              # Global teardown (runs after all tests)
+    └── tsr/                     # Test reports output
 ```
 
 ---
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `API_BASE_URL` | `http://localhost:3000/api/v1` | Base URL for API endpoints |
-| `HEALTH_CHECK_URL` | `http://localhost:3000/health` | Health check endpoint |
+| Variable           | Default                        | Description                |
+| ------------------ | ------------------------------ | -------------------------- |
+| `API_BASE_URL`     | `http://localhost:3000/api/v1` | Base URL for API endpoints |
+| `HEALTH_CHECK_URL` | `http://localhost:3000/health` | Health check endpoint      |
 
 ### Example
 
@@ -109,21 +113,15 @@ describe('E2E: My Workflow', () => {
     logger.info('Starting workflow');
 
     // Step 1: Create routine
-    const routine = await apiClient.createRoutine(
-      testData.generateRoutine('My PPL Split')
-    );
+    const routine = await apiClient.createRoutine(testData.generateRoutine('My PPL Split'));
     expect(routine.id).toBeDefined();
 
     // Step 2: Add workout day
-    const day = await apiClient.createWorkoutDay(
-      testData.generateWorkoutDay(routine.id, 1, 'Push Day')
-    );
+    const day = await apiClient.createWorkoutDay(testData.generateWorkoutDay(routine.id, 1, 'Push Day'));
     expect(day.id).toBeDefined();
 
     // Step 3: Add sets
-    const sets = await apiClient.createWorkoutDaySets(
-      testData.generateSets(day.id, testData.muscleGroups.CHEST, 4)
-    );
+    const sets = await apiClient.createWorkoutDaySets(testData.generateSets(day.id, testData.muscleGroups.CHEST, 4));
     expect(sets.id).toBeDefined();
 
     logger.info('✅ Workflow completed');
@@ -149,7 +147,7 @@ test('should create routine with custom assertions', async () => {
     .expectJsonLike({
       id: /.+/,
       name: 'Test Routine',
-      isActive: true
+      isActive: true,
     })
     .stores('routineId', 'id'); // Store ID for later use
 });
@@ -185,9 +183,11 @@ describe('My Test Suite', () => {
 ## Test Reports
 
 ### Local Development
+
 Test results are printed to console with colored output.
 
 ### CI/CD
+
 - **JUnit XML**: `./test-reports/e2e-workflows-junit.xml`
 - Uploaded as GitHub Actions artifact
 - Available for 7 days after workflow run
@@ -206,11 +206,7 @@ Add to `.vscode/launch.json`:
   "request": "launch",
   "name": "Debug E2E Tests",
   "program": "${workspaceFolder}/e2e/node_modules/.bin/jest",
-  "args": [
-    "--runInBand",
-    "--no-cache",
-    "--watchAll=false"
-  ],
+  "args": ["--runInBand", "--no-cache", "--watchAll=false"],
   "cwd": "${workspaceFolder}/e2e",
   "console": "integratedTerminal",
   "internalConsoleOptions": "neverOpen"
@@ -229,19 +225,20 @@ Then attach your debugger to the Node process.
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| "Cannot find module" | Run `npm install` in `e2e/` directory |
-| "API server not ready" | Ensure API server is running on port 3000 |
-| "Connection refused" | Check `API_BASE_URL` environment variable |
-| "Tests timeout" | Increase timeout in `jest.config.ts` |
-| TypeScript errors | Run `npx tsc --noEmit` to check for type errors |
+| Issue                  | Solution                                        |
+| ---------------------- | ----------------------------------------------- |
+| "Cannot find module"   | Run `npm install` in `e2e/` directory           |
+| "API server not ready" | Ensure API server is running on port 3000       |
+| "Connection refused"   | Check `API_BASE_URL` environment variable       |
+| "Tests timeout"        | Increase timeout in `jest.config.ts`            |
+| TypeScript errors      | Run `npx tsc --noEmit` to check for type errors |
 
 ---
 
 ## CI/CD Integration
 
 Tests run automatically on:
+
 - Push to `main` or `develop` branches
 - Pull requests to `main` or `develop`
 

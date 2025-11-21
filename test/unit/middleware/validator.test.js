@@ -360,9 +360,7 @@ describe('Validation Middleware', () => {
 
     it('should handle custom error messages if schema defines them', () => {
       const schema = Joi.object({
-        name: Joi.string()
-          .required()
-          .messages({ 'any.required': 'Name is mandatory' }),
+        name: Joi.string().required().messages({ 'any.required': 'Name is mandatory' }),
       });
       mockRequest.body = {};
 

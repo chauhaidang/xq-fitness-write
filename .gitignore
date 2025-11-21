@@ -7,3 +7,4 @@ nginx-gateway.conf
 # Generated API client artifacts
 .tmp/
 generated-clients/
+coverage

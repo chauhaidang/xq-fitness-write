@@ -1,7 +1,5 @@
 const db = require('../config/database');
 
-
-
 class RoutineModel {
   /**
    * Transform database row (snake_case) to API response (camelCase)

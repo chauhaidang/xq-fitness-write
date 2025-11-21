@@ -12,7 +12,7 @@
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "types": ["jest", "node"],
-    "typeRoots": ["./node_modules/@types", "./types"],
+    "typeRoots": ["./node_modules/@types"],
     "sourceMap": true,
     "declaration": false,
     "noUnusedLocals": true,
@@ -20,12 +20,6 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "test-reports"
-  ]
+  "include": ["test/component/**/*.ts"],
+  "exclude": ["node_modules", "dist", "test/component/tsr", "coverage"]
 }

@@ -34,10 +34,12 @@ describe('WorkoutDaySetModel', () => {
         const result = await WorkoutDaySetModel.create(data);
 
         expect(db.query).toHaveBeenCalledTimes(1);
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('INSERT INTO workout_day_sets'),
-          [5, 3, 4, 'Heavy weight']
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO workout_day_sets'), [
+          5,
+          3,
+          4,
+          'Heavy weight',
+        ]);
         expect(result).toEqual(mockWorkoutDaySet);
       });
 
@@ -60,10 +62,12 @@ describe('WorkoutDaySetModel', () => {
 
         const result = await WorkoutDaySetModel.create(data);
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('INSERT INTO workout_day_sets'),
-          [10, 7, 3, null]
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO workout_day_sets'), [
+          10,
+          7,
+          3,
+          null,
+        ]);
         expect(result).toEqual(mockWorkoutDaySet);
       });
 
@@ -87,10 +91,7 @@ describe('WorkoutDaySetModel', () => {
 
         await WorkoutDaySetModel.create(data);
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.arrayContaining([null])
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining([null]));
       });
 
       it('should use RETURNING clause to return created workout day set', async () => {
@@ -105,10 +106,7 @@ describe('WorkoutDaySetModel', () => {
 
         await WorkoutDaySetModel.create(data);
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('RETURNING *'),
-          expect.any(Array)
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('RETURNING *'), expect.any(Array));
       });
 
       it('should handle empty string notes', async () => {
@@ -131,10 +129,7 @@ describe('WorkoutDaySetModel', () => {
 
         await WorkoutDaySetModel.create(data);
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.any(String),
-          [1, 2, 3, '']
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), [1, 2, 3, '']);
       });
 
       it('should handle numberOfSets equal to 1', async () => {
@@ -156,10 +151,7 @@ describe('WorkoutDaySetModel', () => {
 
         await WorkoutDaySetModel.create(data);
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.any(String),
-          [1, 2, 1, null]
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), [1, 2, 1, null]);
       });
     });
 
@@ -174,9 +166,7 @@ describe('WorkoutDaySetModel', () => {
           numberOfSets: 3,
         };
 
-        await expect(WorkoutDaySetModel.create(data)).rejects.toThrow(
-          'Database connection failed'
-        );
+        await expect(WorkoutDaySetModel.create(data)).rejects.toThrow('Database connection failed');
       });
 
       it('should propagate unique constraint violation error', async () => {
@@ -323,10 +313,7 @@ describe('WorkoutDaySetModel', () => {
 
         await WorkoutDaySetModel.update(3, data);
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.arrayContaining([null, 3])
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining([null, 3]));
       });
 
       it('should use correct parameter numbering for multiple fields', async () => {
@@ -352,10 +339,7 @@ describe('WorkoutDaySetModel', () => {
 
         await WorkoutDaySetModel.update(5, { numberOfSets: 3 });
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('RETURNING *'),
-          expect.any(Array)
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('RETURNING *'), expect.any(Array));
       });
 
       it('should always update updated_at timestamp', async () => {
@@ -376,10 +360,7 @@ describe('WorkoutDaySetModel', () => {
 
         await WorkoutDaySetModel.update(7, { numberOfSets: 1 });
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.arrayContaining([1, 7])
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining([1, 7]));
       });
     });
 
@@ -387,9 +368,7 @@ describe('WorkoutDaySetModel', () => {
       it('should throw error when no fields to update', async () => {
         const data = {};
 
-        await expect(WorkoutDaySetModel.update(1, data)).rejects.toThrow(
-          'No fields to update'
-        );
+        await expect(WorkoutDaySetModel.update(1, data)).rejects.toThrow('No fields to update');
 
         expect(db.query).not.toHaveBeenCalled();
       });
@@ -400,9 +379,7 @@ describe('WorkoutDaySetModel', () => {
 
         const data = { numberOfSets: 5 };
 
-        await expect(WorkoutDaySetModel.update(1, data)).rejects.toThrow(
-          'Database error'
-        );
+        await expect(WorkoutDaySetModel.update(1, data)).rejects.toThrow('Database error');
       });
 
       it('should handle non-existent workout day set id', async () => {
@@ -422,10 +399,7 @@ describe('WorkoutDaySetModel', () => {
 
         await WorkoutDaySetModel.update('1', { numberOfSets: 3 });
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.arrayContaining([3, '1'])
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining([3, '1']));
       });
 
       it('should ignore undefined fields', async () => {
@@ -450,10 +424,7 @@ describe('WorkoutDaySetModel', () => {
 
         await WorkoutDaySetModel.update(1, { numberOfSets: 100 });
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.arrayContaining([100, 1])
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining([100, 1]));
       });
     });
   });
@@ -467,10 +438,7 @@ describe('WorkoutDaySetModel', () => {
         const result = await WorkoutDaySetModel.delete(1);
 
         expect(db.query).toHaveBeenCalledTimes(1);
-        expect(db.query).toHaveBeenCalledWith(
-          'DELETE FROM workout_day_sets WHERE id = $1 RETURNING id',
-          [1]
-        );
+        expect(db.query).toHaveBeenCalledWith('DELETE FROM workout_day_sets WHERE id = $1 RETURNING id', [1]);
         expect(result).toEqual(mockDeleted);
       });
 
@@ -488,10 +456,7 @@ describe('WorkoutDaySetModel', () => {
 
         await WorkoutDaySetModel.delete(1);
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('RETURNING id'),
-          expect.any(Array)
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('RETURNING id'), expect.any(Array));
       });
     });
 
@@ -508,9 +473,7 @@ describe('WorkoutDaySetModel', () => {
         const dbError = new Error('Database error');
         db.query.mockRejectedValue(dbError);
 
-        await expect(WorkoutDaySetModel.delete(1)).rejects.toThrow(
-          'Database error'
-        );
+        await expect(WorkoutDaySetModel.delete(1)).rejects.toThrow('Database error');
       });
 
       it('should propagate foreign key constraint error if applicable', async () => {
@@ -552,10 +515,7 @@ describe('WorkoutDaySetModel', () => {
         const result = await WorkoutDaySetModel.exists(1);
 
         expect(db.query).toHaveBeenCalledTimes(1);
-        expect(db.query).toHaveBeenCalledWith(
-          'SELECT EXISTS(SELECT 1 FROM workout_day_sets WHERE id = $1)',
-          [1]
-        );
+        expect(db.query).toHaveBeenCalledWith('SELECT EXISTS(SELECT 1 FROM workout_day_sets WHERE id = $1)', [1]);
         expect(result).toBe(true);
       });
 
@@ -583,9 +543,7 @@ describe('WorkoutDaySetModel', () => {
         const dbError = new Error('Database error');
         db.query.mockRejectedValue(dbError);
 
-        await expect(WorkoutDaySetModel.exists(1)).rejects.toThrow(
-          'Database error'
-        );
+        await expect(WorkoutDaySetModel.exists(1)).rejects.toThrow('Database error');
       });
 
       it('should handle database returning no rows', async () => {

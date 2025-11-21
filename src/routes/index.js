@@ -7,32 +7,16 @@ const WorkoutDayController = require('../controllers/workoutDayController');
 const WorkoutDaySetController = require('../controllers/workoutDaySetController');
 
 // Routine routes
-router.post(
-  '/routines',
-  validate(schemas.createRoutineSchema),
-  RoutineController.createRoutine
-);
+router.post('/routines', validate(schemas.createRoutineSchema), RoutineController.createRoutine);
 
-router.put(
-  '/routines/:routineId',
-  validate(schemas.updateRoutineSchema),
-  RoutineController.updateRoutine
-);
+router.put('/routines/:routineId', validate(schemas.updateRoutineSchema), RoutineController.updateRoutine);
 
 router.delete('/routines/:routineId', RoutineController.deleteRoutine);
 
 // Workout day routes
-router.post(
-  '/workout-days',
-  validate(schemas.createWorkoutDaySchema),
-  WorkoutDayController.createWorkoutDay
-);
+router.post('/workout-days', validate(schemas.createWorkoutDaySchema), WorkoutDayController.createWorkoutDay);
 
-router.put(
-  '/workout-days/:dayId',
-  validate(schemas.updateWorkoutDaySchema),
-  WorkoutDayController.updateWorkoutDay
-);
+router.put('/workout-days/:dayId', validate(schemas.updateWorkoutDaySchema), WorkoutDayController.updateWorkoutDay);
 
 router.delete('/workout-days/:dayId', WorkoutDayController.deleteWorkoutDay);
 

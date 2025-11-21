@@ -33,10 +33,11 @@ describe('RoutineModel', () => {
         const result = await RoutineModel.create(data);
 
         expect(db.query).toHaveBeenCalledTimes(1);
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('INSERT INTO workout_routines'),
-          ['Full Body Workout', 'A complete routine', true]
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO workout_routines'), [
+          'Full Body Workout',
+          'A complete routine',
+          true,
+        ]);
         expect(result).toEqual(mockRoutine);
       });
 
@@ -58,10 +59,11 @@ describe('RoutineModel', () => {
 
         const result = await RoutineModel.create(data);
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('INSERT INTO workout_routines'),
-          ['Minimal Routine', null, true]
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO workout_routines'), [
+          'Minimal Routine',
+          null,
+          true,
+        ]);
         expect(result).toEqual(mockRoutine);
       });
 
@@ -79,10 +81,7 @@ describe('RoutineModel', () => {
 
         await RoutineModel.create(data);
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.arrayContaining([true])
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining([true]));
       });
 
       it('should handle isActive as false', async () => {
@@ -102,10 +101,7 @@ describe('RoutineModel', () => {
 
         const result = await RoutineModel.create(data);
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.any(String),
-          ['Inactive Routine', null, false]
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), ['Inactive Routine', null, false]);
         expect(result.is_active).toBe(false);
       });
 
@@ -126,10 +122,7 @@ describe('RoutineModel', () => {
 
         await RoutineModel.create(data);
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.arrayContaining([null])
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining([null]));
       });
 
       it('should use RETURNING clause to return created routine', async () => {
@@ -138,10 +131,7 @@ describe('RoutineModel', () => {
 
         await RoutineModel.create({ name: 'Test' });
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('RETURNING *'),
-          expect.any(Array)
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('RETURNING *'), expect.any(Array));
       });
     });
 
@@ -152,9 +142,7 @@ describe('RoutineModel', () => {
 
         const data = { name: 'Test Routine' };
 
-        await expect(RoutineModel.create(data)).rejects.toThrow(
-          'Database connection failed'
-        );
+        await expect(RoutineModel.create(data)).rejects.toThrow('Database connection failed');
       });
 
       it('should throw error when database returns no rows', async () => {
@@ -171,9 +159,7 @@ describe('RoutineModel', () => {
         dbError.code = '23505';
         db.query.mockRejectedValue(dbError);
 
-        await expect(
-          RoutineModel.create({ name: 'Duplicate' })
-        ).rejects.toThrow();
+        await expect(RoutineModel.create({ name: 'Duplicate' })).rejects.toThrow();
       });
     });
   });
@@ -285,10 +271,7 @@ describe('RoutineModel', () => {
 
         await RoutineModel.update(4, data);
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.arrayContaining([null, 4])
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining([null, 4]));
       });
 
       it('should use correct parameter numbering for multiple fields', async () => {
@@ -316,10 +299,7 @@ describe('RoutineModel', () => {
 
         await RoutineModel.update(6, { name: 'Updated' });
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('RETURNING *'),
-          expect.any(Array)
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('RETURNING *'), expect.any(Array));
       });
 
       it('should always update updated_at timestamp', async () => {
@@ -339,9 +319,7 @@ describe('RoutineModel', () => {
       it('should throw error when no fields to update', async () => {
         const data = {};
 
-        await expect(RoutineModel.update(1, data)).rejects.toThrow(
-          'No fields to update'
-        );
+        await expect(RoutineModel.update(1, data)).rejects.toThrow('No fields to update');
 
         expect(db.query).not.toHaveBeenCalled();
       });
@@ -352,9 +330,7 @@ describe('RoutineModel', () => {
 
         const data = { name: 'Test' };
 
-        await expect(RoutineModel.update(1, data)).rejects.toThrow(
-          'Database error'
-        );
+        await expect(RoutineModel.update(1, data)).rejects.toThrow('Database error');
       });
 
       it('should handle non-existent routine id gracefully', async () => {
@@ -374,10 +350,7 @@ describe('RoutineModel', () => {
 
         await RoutineModel.update('1', { name: 'Test' });
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.arrayContaining(['Test', '1'])
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining(['Test', '1']));
       });
 
       it('should ignore undefined fields', async () => {
@@ -407,10 +380,7 @@ describe('RoutineModel', () => {
         const result = await RoutineModel.delete(1);
 
         expect(db.query).toHaveBeenCalledTimes(1);
-        expect(db.query).toHaveBeenCalledWith(
-          'DELETE FROM workout_routines WHERE id = $1 RETURNING id',
-          [1]
-        );
+        expect(db.query).toHaveBeenCalledWith('DELETE FROM workout_routines WHERE id = $1 RETURNING id', [1]);
         expect(result).toEqual(mockDeleted);
       });
 
@@ -428,10 +398,7 @@ describe('RoutineModel', () => {
 
         await RoutineModel.delete(1);
 
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('RETURNING id'),
-          expect.any(Array)
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('RETURNING id'), expect.any(Array));
       });
     });
 
@@ -456,9 +423,7 @@ describe('RoutineModel', () => {
         dbError.code = '23503';
         db.query.mockRejectedValue(dbError);
 
-        await expect(RoutineModel.delete(1)).rejects.toThrow(
-          'foreign key violation'
-        );
+        await expect(RoutineModel.delete(1)).rejects.toThrow('foreign key violation');
       });
     });
 
@@ -490,10 +455,7 @@ describe('RoutineModel', () => {
         const result = await RoutineModel.exists(1);
 
         expect(db.query).toHaveBeenCalledTimes(1);
-        expect(db.query).toHaveBeenCalledWith(
-          'SELECT EXISTS(SELECT 1 FROM workout_routines WHERE id = $1)',
-          [1]
-        );
+        expect(db.query).toHaveBeenCalledWith('SELECT EXISTS(SELECT 1 FROM workout_routines WHERE id = $1)', [1]);
         expect(result).toBe(true);
       });
 

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="2" failures="2" errors="0" time="3.02">
+  <testsuite name="workflows/create-complete-routine.test.ts" errors="0" failures="2" skipped="0" timestamp="2025-11-16T16:29:02" time="2.912" tests="2">
+    <testcase classname="E2E Workflow: Create Complete Routine" name="should create complete PPL routine with days and sets" time="1.131">
+      <failure>ResponseError: Response returned an error code
+    at RoutinesApi.&lt;anonymous&gt; (/Users/automation2/Documents/workspace/project/xq-app/xq-fitness/write-service/generated-clients/read-service/dist/runtime.js:163:19)
+    at Generator.next (&lt;anonymous&gt;)
+    at fulfilled (/Users/automation2/Documents/workspace/project/xq-app/xq-fitness/write-service/generated-clients/read-service/dist/runtime.js:18:58)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="E2E Workflow: Create Complete Routine" name="should handle routine creation with minimal data" time="0.031">
+      <failure>ResponseError: Response returned an error code
+    at RoutinesApi.&lt;anonymous&gt; (/Users/automation2/Documents/workspace/project/xq-app/xq-fitness/write-service/generated-clients/read-service/dist/runtime.js:163:19)
+    at Generator.next (&lt;anonymous&gt;)
+    at fulfilled (/Users/automation2/Documents/workspace/project/xq-app/xq-fitness/write-service/generated-clients/read-service/dist/runtime.js:18:58)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

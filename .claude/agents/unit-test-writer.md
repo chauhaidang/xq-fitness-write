@@ -72,6 +72,7 @@ When writing unit tests for this XQ Fitness write-service project, you will:
 ## Output Format
 
 For each test file you create:
+
 1. Start with necessary imports (Jest, the code under test, mocks)
 2. Set up module mocks at the top of the file
 3. Organize tests in logical `describe()` blocks
@@ -90,6 +91,7 @@ For each test file you create:
 ## Quality Standards
 
 Your tests should:
+
 - Be readable and maintainable
 - Serve as documentation for the code's expected behavior
 - Catch regressions effectively

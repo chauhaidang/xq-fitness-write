@@ -32,35 +32,31 @@ jobs:
 
       - name: Install root dependencies (API server only)
         run: npm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run init tests
+        run: npm run test:unit
 
       - name: build write-service
         run: |
           chmod +x ./build-write-service.sh
           ./build-write-service.sh
 
-      - name: Install E2E dependencies
-        working-directory: ./e2e
-        run: npm install
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Start up environment
-        working-directory: ./e2e
         run: | 
           xq-infra generate -f ./test-env
           xq-infra up
 
       - name: Run e2e tests
-        working-directory: ./e2e
-        run: npm run test:ci
+        run: npm run test:component:ci
 
       - name: Stop environment
-        working-directory: ./e2e
         run: xq-infra down
 
       - name: Present tsr
         if: success() || failure()
         working-directory: ./e2e
-        run: cat ./tsr/report.md >> $GITHUB_STEP_SUMMARY
+        run: cat test/component/tsr/report.md >> $GITHUB_STEP_SUMMARY
 
 

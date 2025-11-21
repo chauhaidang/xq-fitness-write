@@ -17,19 +17,13 @@ class WorkoutDaySetModel {
     };
   }
 
-
   static async create(data) {
     const query = `
       INSERT INTO workout_day_sets (workout_day_id, muscle_group_id, number_of_sets, notes)
       VALUES ($1, $2, $3, $4)
       RETURNING *
     `;
-    const values = [
-      data.workoutDayId,
-      data.muscleGroupId,
-      data.numberOfSets,
-      data.notes || null
-    ];
+    const values = [data.workoutDayId, data.muscleGroupId, data.numberOfSets, data.notes || null];
     const result = await db.query(query, values);
     return this.transformRow(result.rows[0]);
   }

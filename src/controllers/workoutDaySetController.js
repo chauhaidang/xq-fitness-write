@@ -18,14 +18,16 @@ class WorkoutDaySetController {
       res.status(201).json(workoutDaySet);
     } catch (error) {
       console.error('Error creating workout day set:', error);
-      if (error.code === '23505') { // Unique constraint violation
+      if (error.code === '23505') {
+        // Unique constraint violation
         return res.status(400).json({
           code: 'DUPLICATE_ERROR',
           message: 'This muscle group already has a set configuration for this workout day',
           timestamp: new Date().toISOString(),
         });
       }
-      if (error.code === '23503') { // Foreign key violation
+      if (error.code === '23503') {
+        // Foreign key violation
         return res.status(404).json({
           code: 'NOT_FOUND',
           message: 'Muscle group not found',

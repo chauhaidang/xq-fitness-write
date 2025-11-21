@@ -5,16 +5,16 @@ class WorkoutDayModel {
    * Transform database row (snake_case) to API response (camelCase)
    */
   static transformRow(row) {
-      if (!row) return null;
-      return {
-          id: row.id,
-          routineId: row.routine_id,
-          dayNumber: row.day_number,
-          dayName: row.day_name,
-          notes: row.notes,
-          createdAt: row.created_at,
-          updatedAt: row.updated_at
-      };
+    if (!row) return null;
+    return {
+      id: row.id,
+      routineId: row.routine_id,
+      dayNumber: row.day_number,
+      dayName: row.day_name,
+      notes: row.notes,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
   }
 
   static async create(data) {
