@@ -39,7 +39,7 @@ fi
 
 echo "${YELLOW}Building image: ${IMAGE_NAME}${NC}"
 
-docker build -t "$IMAGE_NAME" "$SERVICE_DIR"
+docker build --build-arg GITHUB_TOKEN="${GITHUB_TOKEN}" -t "$IMAGE_NAME" "$SERVICE_DIR"
 
 if [ $? -eq 0 ]; then
     echo "${GREEN}Successfully built ${IMAGE_NAME}${NC}"

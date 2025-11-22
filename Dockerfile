@@ -5,6 +5,7 @@ WORKDIR /app
 
 # Accept GitHub token as build argument
 ARG GITHUB_TOKEN
+ENV GITHUB_TOKEN=${GITHUB_TOKEN}
 
 # Copy package files (exclude lock file to avoid file:// dependency issues)
 COPY package.json ./
