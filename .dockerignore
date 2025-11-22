@@ -1,10 +1,33 @@
+# Dependencies
 node_modules
+
+# Logs
 npm-debug.log
+*.log
+
+# Git
 .git
 .gitignore
+
+# Documentation
 README.md
-.DS_Store
+*.md
+!package*.json
+
+# Environment files
 .env
 .env.example
+
+# IDE
 .idea
 .vscode
+.DS_Store
+
+# Tests
+test
+coverage
+*.test.js
+*.spec.js
+
+# CI/CD
+.github
