@@ -7,8 +7,8 @@ import waitOn from 'wait-on';
 import { logger } from '@chauhaidang/xq-js-common-kit';
 
 // Get base URL from environment or use default
-const BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000/api/v1';
-const HEALTH_CHECK_URL = process.env.HEALTH_CHECK_URL || 'http://localhost:3000/health';
+const BASE_URL = process.env.API_BASE_URL || 'http://localhost:8080/xq-fitness-write-service/api/v1';
+const HEALTH_CHECK_URL = process.env.HEALTH_CHECK_URL || 'http://localhost:8080/xq-fitness-write-service/health';
 
 // Global setup - runs once before all tests
 beforeAll(async () => {

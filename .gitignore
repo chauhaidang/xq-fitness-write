@@ -8,3 +8,4 @@ nginx-gateway.conf
 .tmp/
 generated-clients/
 coverage
+tsr/

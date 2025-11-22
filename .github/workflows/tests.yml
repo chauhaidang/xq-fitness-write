@@ -7,7 +7,7 @@ on:
     branches: [main, develop]
 
 jobs:
-  e2e-tests:
+  component-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -30,14 +30,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
-      - name: Install root dependencies (API server only)
-        run: npm install
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run init tests
-        run: npm run test:unit
-
       - name: build write-service
         run: |
           chmod +x ./build-write-service.sh
@@ -45,20 +37,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate clients
+        run:  |
+          chmod +x ./scripts/generate-api-client.sh
+          ./scripts/generate-api-client.sh write-service
+
+      - name: Install root dependencies (API server only)
+        run: npm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run unit tests
+        run: npm run test:unit
+
       - name: Start up environment
         run: | 
           xq-infra generate -f ./test-env
           xq-infra up
 
-      - name: Run e2e tests
-        run: npm run test:component:ci
+      - name: Run component tests
+        run: |
+          npm run test:component:ci
 
       - name: Stop environment
         run: xq-infra down
 
       - name: Present tsr
         if: success() || failure()
-        working-directory: ./e2e
+        working-directory: ./
         run: cat test/component/tsr/report.md >> $GITHUB_STEP_SUMMARY
 
 
