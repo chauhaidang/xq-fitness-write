@@ -3,9 +3,12 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
+# Accept GitHub token as build argument
+ARG GITHUB_TOKEN
+
 # Copy package files (exclude lock file to avoid file:// dependency issues)
 COPY package.json ./
-
+COPY .npmrc ./
 # Install dependencies (production only)
 # Lock file will be generated fresh without file:// devDependencies
 RUN npm install --production --no-audit
