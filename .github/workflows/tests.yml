@@ -1,4 +1,4 @@
-name: E2E Workflow Tests
+name: unit and component tests
 
 on:
   push:

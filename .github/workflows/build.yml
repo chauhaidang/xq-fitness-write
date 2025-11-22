@@ -1,4 +1,4 @@
-name: Publish Write Service to GHCR
+name: build and publish
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'src/**'
-      - '.github/workflows/publish.yml'
+      - 'build.yml'
 
 env:
   REGISTRY: ghcr.io
