@@ -25,8 +25,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install global xq-infra
-        run: npm install -g @chauhaidang/xq-test-infra
+      - name: Install global tools
+        run: |
+          npm install -g @chauhaidang/xq-test-infra
+          npm install -g @openapitools/openapi-generator-cli
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
