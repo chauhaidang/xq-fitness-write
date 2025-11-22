@@ -2,9 +2,9 @@
 
 Node.js service for creating, updating, and deleting workout data.
 
-[![Build](https://github.com/chauhaidang/xq-fitness-write/actions/workflows/publish.yml/badge.svg)](https://github.com/chauhaidang/xq-fitness-write/actions/workflows/publish.yml)
+[![build and publish](https://github.com/chauhaidang/xq-fitness-write/actions/workflows/build.yml/badge.svg)](https://github.com/chauhaidang/xq-fitness-write/actions/workflows/build.yml)
 
-[![Test](https://github.com/chauhaidang/xq-fitness-write/actions/workflows/e2e-tests.yml/badge.svg)](https://github.com/chauhaidang/xq-fitness-write/actions/workflows/e2e-tests.yml)
+[![unit and component tests](https://github.com/chauhaidang/xq-fitness-write/actions/workflows/tests.yml/badge.svg)](https://github.com/chauhaidang/xq-fitness-write/actions/workflows/tests.yml)
 
 ## Prerequisites
 
