@@ -1,0 +1,48 @@
+name: ${APP_NAME}
+region: ${REGION}
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
+services:
+  - name: write-service
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-xs
+    routes:
+      - path: /xq-fitness-write-service
+        preserve_path_prefix: false
+    image:
+      registry_type: DOCKER_HUB
+      registry: ghcr.io
+      repository: ${IMAGE_NAME}
+      tag: ${IMAGE_TAG:-latest}
+      registry_credentials: "${GITHUB_REGISTRY_CREDENTIALS}"
+    envs:
+      - key: PORT
+        type: GENERAL
+        scope: RUN_TIME
+        value: "3000"
+      - key: DB_HOST
+        type: GENERAL
+        scope: RUN_TIME
+        value: ${DB_HOST}
+      - key: DB_PORT
+        type: GENERAL
+        scope: RUN_TIME
+        value: "${DB_PORT}"
+      - key: DB_USER
+        type: GENERAL
+        scope: RUN_TIME
+        value: ${DB_USER}
+      - key: DB_PASSWORD
+        type: SECRET
+        scope: RUN_TIME
+        value: ${DB_PASSWORD}
+      - key: DB_NAME
+        type: GENERAL
+        scope: RUN_TIME
+        value: ${DB_NAME}
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 30
+
