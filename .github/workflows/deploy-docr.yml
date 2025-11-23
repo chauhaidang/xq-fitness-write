@@ -32,6 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: read
     outputs:
       image_tag: ${{ steps.tag.outputs.tag }}
       image_tag_sha: ${{ steps.tag.outputs.tag_sha }}
