@@ -7,6 +7,7 @@ on:
     paths:
       - 'src/**'
       - 'build.yml'
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
