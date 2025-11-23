@@ -139,17 +139,51 @@ jobs:
           
           # Get connection details
           CONNECTION_JSON=$(doctl databases connection "$DB_CLUSTER_ID" --output json)
-          DB_HOST=$(echo "$CONNECTION_JSON" | jq -r '.[0].host // .host // empty' | sed -E 's/.*@([^:]+).*/\1/' || echo "")
-          DB_PORT=$(echo "$CONNECTION_JSON" | jq -r '.[0].port // .port // empty' || echo "")
           
-          # Extract hostname if it's a URI
+          # Handle both array and object formats (same logic as provision-db.sh)
+          if echo "$CONNECTION_JSON" | jq -e 'type == "array"' >/dev/null 2>&1; then
+            DB_HOST=$(echo "$CONNECTION_JSON" | jq -r '.[0].host // .[0].uri // empty')
+            DB_PORT=$(echo "$CONNECTION_JSON" | jq -r '.[0].port // empty')
+          else
+            DB_HOST=$(echo "$CONNECTION_JSON" | jq -r '.host // .uri // empty')
+            DB_PORT=$(echo "$CONNECTION_JSON" | jq -r '.port // empty')
+          fi
+          
+          # If host is a URI, extract hostname from it
           if [[ "$DB_HOST" == *"@"* ]]; then
             DB_HOST=$(echo "$DB_HOST" | sed -E 's/.*@([^:]+).*/\1/')
+          fi
+          
+          # Fallback: try to get connection string and parse it
+          if [[ -z "$DB_HOST" ]] || [[ -z "$DB_PORT" ]]; then
+            if echo "$CONNECTION_JSON" | jq -e 'type == "array"' >/dev/null 2>&1; then
+              CONNECTION_STRING=$(echo "$CONNECTION_JSON" | jq -r '.[0].uri // .[0].connection_string // empty')
+            else
+              CONNECTION_STRING=$(echo "$CONNECTION_JSON" | jq -r '.uri // .connection_string // empty')
+            fi
+            if [[ -n "$CONNECTION_STRING" ]]; then
+              DB_HOST=$(echo "$CONNECTION_STRING" | sed -E 's/.*@([^:]+):.*/\1/')
+              DB_PORT=$(echo "$CONNECTION_STRING" | sed -E 's/.*:([0-9]+)\/.*/\1/')
+            fi
+          fi
+          
+          # Final fallback: extract from script output if still empty
+          if [[ -z "$DB_HOST" ]] || [[ -z "$DB_PORT" ]]; then
+            DB_HOST=$(grep -E "^  Host:" provision-output.log | awk '{print $2}' | tr -d '"' || echo "")
+            DB_PORT=$(grep -E "^  Port:" provision-output.log | awk '{print $2}' | tr -d '"' || echo "")
           fi
           
           # Get database and user names (from script defaults or secrets)
           DB_NAME="${APP_DB_NAME:-xq_fitness}"
           DB_USER="${APP_DB_USER:-xq_app_user}"
+          
+          # Also try to extract from script output as fallback
+          if [[ -z "$DB_NAME" ]]; then
+            DB_NAME=$(grep -E "^  Database:" provision-output.log | awk '{print $2}' | tr -d '"' || echo "")
+          fi
+          if [[ -z "$DB_USER" ]]; then
+            DB_USER=$(grep -E "^  User:" provision-output.log | awk '{print $2}' | tr -d '"' || echo "")
+          fi
           
           # Use secrets as fallback
           DB_HOST="${DB_HOST:-${{ secrets.DB_HOST }}}"
