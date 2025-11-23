@@ -30,7 +30,7 @@ fi
 REGION="${REGION:-sgp1}"
 APP_NAME="${APP_NAME:-xq-fitness}"
 GITHUB_OWNER="${GITHUB_OWNER:-}"
-IMAGE_NAME="${IMAGE_NAME:-xq-fitness-write-service}"
+IMAGE_NAME="${IMAGE_NAME:-chauhaidang/xq-fitness-write-service}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 GITHUB_REGISTRY_CREDENTIALS="${GITHUB_REGISTRY_CREDENTIALS:-}"
 
@@ -54,12 +54,12 @@ echo ">> Authenticating doctl context"
 doctl auth init -t "$DO_TOKEN" >/dev/null
 
 echo ">> Using GitHub Container Registry (ghcr.io)"
-echo "   Repository: ghcr.io/${GITHUB_OWNER}/${IMAGE_NAME}"
+echo "   Repository: ghcr.io/${IMAGE_NAME}"
 echo "   Tag: ${IMAGE_TAG}"
 
 # Validate required variables
-if [[ -z "$GITHUB_OWNER" ]]; then
-  echo "Error: GITHUB_OWNER is required" >&2
+if [[ -z "$IMAGE_NAME" ]]; then
+  echo "Error: IMAGE_NAME is required" >&2
   exit 1
 fi
 
@@ -68,7 +68,7 @@ if [[ -z "$GITHUB_REGISTRY_CREDENTIALS" ]]; then
   echo "   Set it in the format: username:personal-access-token" >&2
 fi
 
-export APP_NAME REGION GITHUB_OWNER IMAGE_NAME IMAGE_TAG GITHUB_REGISTRY_CREDENTIALS
+export APP_NAME REGION IMAGE_NAME IMAGE_TAG GITHUB_REGISTRY_CREDENTIALS
 export DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME
 
 # Construct SPRING_DATASOURCE_URL for read-service (Spring Boot)

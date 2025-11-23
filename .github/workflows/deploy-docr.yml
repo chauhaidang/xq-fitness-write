@@ -26,7 +26,7 @@ on:
 
 env:
   GITHUB_OWNER: ${{ github.repository_owner }}
-  IMAGE_NAME: xq-fitness-write-service
+  IMAGE_NAME: ${{ github.repository_owner }}/xq-fitness-write-service
   SERVICE_NAME: write-service
 
 jobs:
