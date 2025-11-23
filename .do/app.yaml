@@ -15,7 +15,7 @@ services:
       registry_type: DOCKER_HUB
       registry: ghcr.io
       repository: ${IMAGE_NAME}
-      tag: ${IMAGE_TAG:-latest}
+      tag: ${IMAGE_TAG}
       registry_credentials: "${GITHUB_REGISTRY_CREDENTIALS}"
     envs:
       - key: PORT

@@ -196,7 +196,7 @@ jobs:
           APP_NAME: ${{ secrets.APP_NAME || 'xq-fitness' }}
           REGION: ${{ secrets.REGION || 'sgp1' }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
+          IMAGE_TAG: ${{ steps.image-tag.outputs.tag || 'latest' }}
           GITHUB_REGISTRY_CREDENTIALS: ${{ env.GITHUB_OWNER }}:${{ secrets.GITHUB_PAT || secrets.GITHUB_TOKEN }}
           DB_HOST: ${{ steps.provision-db.outputs.db_host }}
           DB_PORT: ${{ steps.provision-db.outputs.db_port }}
@@ -204,6 +204,10 @@ jobs:
           DB_PASSWORD: ${{ steps.provision-db.outputs.db_password }}
           DB_NAME: ${{ steps.provision-db.outputs.db_name }}
         run: |
+          # Ensure IMAGE_TAG is set (fallback to latest)
+          export IMAGE_TAG="${IMAGE_TAG:-latest}"
+          echo "Using IMAGE_TAG: $IMAGE_TAG"
+          
           # Render .do/app.yaml from template
           envsubst < .do/app.yaml > .do/app.rendered.yaml
           
