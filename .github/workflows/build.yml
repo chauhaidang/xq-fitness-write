@@ -252,14 +252,25 @@ jobs:
           
           if [ -z "$APP_ID" ]; then
             echo "Creating new app..."
-            if ! CREATE_RESPONSE=$(doctl apps create --spec .do/app.rendered.yaml --output json 2>&1); then
-              echo "Error creating app:" >&2
+            CREATE_RESPONSE=$(doctl apps create --spec .do/app.rendered.yaml --output json 2>&1)
+            CREATE_EXIT_CODE=$?
+            
+            if [ $CREATE_EXIT_CODE -ne 0 ]; then
+              echo "Error creating app (exit code: $CREATE_EXIT_CODE):" >&2
               echo "$CREATE_RESPONSE" >&2
               echo "" >&2
               echo "Rendered spec file:" >&2
               cat .do/app.rendered.yaml >&2
               exit 1
             fi
+            
+            # Check if response is valid JSON
+            if ! echo "$CREATE_RESPONSE" | jq empty 2>/dev/null; then
+              echo "Error: doctl returned non-JSON response:" >&2
+              echo "$CREATE_RESPONSE" >&2
+              exit 1
+            fi
+            
             APP_ID=$(echo "$CREATE_RESPONSE" | jq -r '.app.id // .id // empty')
             if [ -z "$APP_ID" ]; then
               echo "Error: Could not extract app ID from create response:" >&2
