@@ -57,6 +57,17 @@ echo ">> Using GitHub Container Registry (ghcr.io)"
 echo "   Repository: ghcr.io/${GITHUB_OWNER}/${IMAGE_NAME}"
 echo "   Tag: ${IMAGE_TAG}"
 
+# Validate required variables
+if [[ -z "$GITHUB_OWNER" ]]; then
+  echo "Error: GITHUB_OWNER is required" >&2
+  exit 1
+fi
+
+if [[ -z "$GITHUB_REGISTRY_CREDENTIALS" ]]; then
+  echo "Warning: GITHUB_REGISTRY_CREDENTIALS is not set. This may cause issues with private images." >&2
+  echo "   Set it in the format: username:personal-access-token" >&2
+fi
+
 export APP_NAME REGION GITHUB_OWNER IMAGE_NAME IMAGE_TAG GITHUB_REGISTRY_CREDENTIALS
 export DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME
 
@@ -69,15 +80,63 @@ fi
 echo ">> Rendering App Platform spec -> $APP_SPEC_RENDERED"
 envsubst < "$APP_SPEC_TEMPLATE" > "$APP_SPEC_RENDERED"
 
+# Remove registry_credentials line if empty (to avoid invalid YAML)
+if [[ -z "$GITHUB_REGISTRY_CREDENTIALS" ]]; then
+  echo "   Removing empty registry_credentials field"
+  sed -i '/registry_credentials: ""$/d' "$APP_SPEC_RENDERED"
+  sed -i '/registry_credentials: $/d' "$APP_SPEC_RENDERED"
+fi
+
+# Validate rendered spec
+if [[ ! -s "$APP_SPEC_RENDERED" ]]; then
+  echo "Error: Rendered spec file is empty" >&2
+  exit 1
+fi
+
+echo ">> Rendered spec preview (first 50 lines):"
+head -n 50 "$APP_SPEC_RENDERED"
+
+echo ""
+echo ">> Validating rendered spec..."
+# Note: doctl apps spec validate might not be available in all versions
+# If it fails, we'll continue and let the create/update command validate
+if doctl apps spec validate "$APP_SPEC_RENDERED" 2>&1; then
+  echo "   ✓ Spec validation passed"
+else
+  echo "   ⚠️  Spec validation failed or not available, continuing anyway..."
+  echo "   (The create/update command will validate the spec)"
+fi
+
 echo ">> Creating or updating App Platform app ($APP_NAME)"
 APP_ID=$(doctl apps list --output json 2>/dev/null | jq -r '.[] | select(.spec.name=="'"$APP_NAME"'") | .id' || echo "")
 
 if [[ -z "$APP_ID" ]]; then
-  CREATE_RESPONSE=$(doctl apps create --spec "$APP_SPEC_RENDERED" --output json)
+  echo "   Creating new app..."
+  if ! CREATE_RESPONSE=$(doctl apps create --spec "$APP_SPEC_RENDERED" --output json 2>&1); then
+    echo "Error creating app:" >&2
+    echo "$CREATE_RESPONSE" >&2
+    echo "" >&2
+    echo "Rendered spec file:" >&2
+    cat "$APP_SPEC_RENDERED" >&2
+    exit 1
+  fi
   APP_ID=$(echo "$CREATE_RESPONSE" | jq -r '.app.id // .id // empty')
+  if [[ -z "$APP_ID" ]]; then
+    echo "Error: Could not extract app ID from create response:" >&2
+    echo "$CREATE_RESPONSE" >&2
+    exit 1
+  fi
   echo "   Created new app: $APP_ID"
 else
-  UPDATE_RESPONSE=$(doctl apps update "$APP_ID" --spec "$APP_SPEC_RENDERED" --output json)
+  echo "   Updating existing app: $APP_ID"
+  if ! UPDATE_RESPONSE=$(doctl apps update "$APP_ID" --spec "$APP_SPEC_RENDERED" --output json 2>&1); then
+    echo "Error updating app:" >&2
+    echo "$UPDATE_RESPONSE" >&2
+    echo "" >&2
+    echo "Rendered spec file:" >&2
+    cat "$APP_SPEC_RENDERED" >&2
+    exit 1
+  fi
   echo "   Updated app: $APP_ID"
 fi
 

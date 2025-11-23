@@ -200,7 +200,21 @@ jobs:
           # Use the deploy-service.sh script to create/update app
           chmod +x deploy/digitalocean/deploy-service.sh
           cd deploy/digitalocean
-          ./deploy-service.sh ${{ env.SERVICE_NAME }}
+          
+          # Debug: Show environment variables (hide sensitive data)
+          echo ">> Environment check:"
+          echo "  GITHUB_OWNER: ${GITHUB_OWNER}"
+          echo "  IMAGE_NAME: ${IMAGE_NAME}"
+          echo "  IMAGE_TAG: ${IMAGE_TAG}"
+          echo "  GITHUB_REGISTRY_CREDENTIALS: ${GITHUB_REGISTRY_CREDENTIALS:+set (hidden)}"
+          echo "  APP_NAME: ${APP_NAME}"
+          echo ""
+          
+          # Run deploy script with error handling
+          if ! ./deploy-service.sh ${{ env.SERVICE_NAME }} 2>&1; then
+            echo "::error::Deploy script failed"
+            exit 1
+          fi
           
           # Get APP_ID by querying doctl (most reliable method)
           APP_ID=$(doctl apps list --output json | jq -r '.[] | select(.spec.name=="'"${{ secrets.APP_NAME || 'xq-fitness' }}"'") | .id' | head -n1)

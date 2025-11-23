@@ -16,7 +16,7 @@ services:
       registry: ghcr.io
       repository: ${GITHUB_OWNER}/${IMAGE_NAME}
       tag: ${IMAGE_TAG:-latest}
-      registry_credentials: ${GITHUB_REGISTRY_CREDENTIALS}
+      registry_credentials: "${GITHUB_REGISTRY_CREDENTIALS}"
     envs:
       - key: PORT
         type: GENERAL
