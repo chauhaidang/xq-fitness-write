@@ -221,17 +221,55 @@ jobs:
         env:
           APP_NAME: ${{ secrets.APP_NAME || 'xq-fitness' }}
         run: |
+          # Validate rendered spec exists
+          if [ ! -f .do/app.rendered.yaml ]; then
+            echo "Error: Rendered app spec file not found" >&2
+            exit 1
+          fi
+          
+          # Show rendered spec for debugging
+          echo ">> Rendered app spec:"
+          cat .do/app.rendered.yaml
+          echo ""
+          
+          # Validate spec
+          echo ">> Validating app spec..."
+          if doctl apps spec validate .do/app.rendered.yaml 2>&1; then
+            echo "✓ Spec validation passed"
+          else
+            echo "⚠️  Spec validation failed, but continuing..."
+          fi
+          
           # Get existing app ID if it exists
-          APP_ID=$(doctl apps list --output json | jq -r '.[] | select(.spec.name=="'"$APP_NAME"'") | .id' | head -n1)
+          APP_ID=$(doctl apps list --output json 2>/dev/null | jq -r '.[] | select(.spec.name=="'"$APP_NAME"'") | .id' | head -n1 || echo "")
           
           if [ -z "$APP_ID" ]; then
             echo "Creating new app..."
-            CREATE_RESPONSE=$(doctl apps create --spec .do/app.rendered.yaml --output json)
+            if ! CREATE_RESPONSE=$(doctl apps create --spec .do/app.rendered.yaml --output json 2>&1); then
+              echo "Error creating app:" >&2
+              echo "$CREATE_RESPONSE" >&2
+              echo "" >&2
+              echo "Rendered spec file:" >&2
+              cat .do/app.rendered.yaml >&2
+              exit 1
+            fi
             APP_ID=$(echo "$CREATE_RESPONSE" | jq -r '.app.id // .id // empty')
+            if [ -z "$APP_ID" ]; then
+              echo "Error: Could not extract app ID from create response:" >&2
+              echo "$CREATE_RESPONSE" >&2
+              exit 1
+            fi
             echo "Created app: $APP_ID"
           else
             echo "Updating existing app: $APP_ID"
-            doctl apps update "$APP_ID" --spec .do/app.rendered.yaml --output json
+            if ! UPDATE_RESPONSE=$(doctl apps update "$APP_ID" --spec .do/app.rendered.yaml --output json 2>&1); then
+              echo "Error updating app:" >&2
+              echo "$UPDATE_RESPONSE" >&2
+              echo "" >&2
+              echo "Rendered spec file:" >&2
+              cat .do/app.rendered.yaml >&2
+              exit 1
+            fi
             echo "Updated app: $APP_ID"
           fi
           
