@@ -38,11 +38,15 @@ services:
         type: SECRET
         scope: RUN_TIME
         value: ${DB_PASSWORD}
-      - key: DB_NAME
-        type: GENERAL
-        scope: RUN_TIME
-        value: ${DB_NAME}
-    health_check:
+          - key: DB_NAME
+            type: GENERAL
+            scope: RUN_TIME
+            value: ${DB_NAME}
+          - key: DB_SSL
+            type: GENERAL
+            scope: RUN_TIME
+            value: "true"
+        health_check:
       http_path: /health
       initial_delay_seconds: 30
 

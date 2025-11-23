@@ -14,6 +14,8 @@ const pool = new Pool({
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
+  // Enable SSL for production databases (DigitalOcean managed databases require SSL)
+  ssl: process.env.DB_SSL !== 'false' ? { rejectUnauthorized: false } : false,
 });
 
 pool.on('error', (err, client) => {

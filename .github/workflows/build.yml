@@ -317,4 +317,6 @@ jobs:
         uses: digitalocean/app_action/deploy@v2
         with:
           token: ${{ secrets.DO_TOKEN }}
-          app_id: ${{ steps.app-setup.outputs.app_id }}
+          app_name: ${{ secrets.APP_NAME || 'xq-fitness' }}
+          app_spec_location: .do/app.rendered.yaml
+          print_deploy_logs: true
