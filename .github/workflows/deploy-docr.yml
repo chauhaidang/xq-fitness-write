@@ -1,4 +1,4 @@
-name: Build, Push, and Deploy to DigitalOcean
+name: Deploy to DigitalOcean
 
 on:
   push:
@@ -10,90 +10,36 @@ on:
       - '.github/workflows/deploy-docr.yml'
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Image tag (default: latest)'
+      image_tag:
+        description: 'Image tag from GitHub Container Registry (default: latest)'
         required: false
         default: 'latest'
       deploy:
-        description: 'Deploy to App Platform after build'
+        description: 'Deploy to App Platform'
         required: false
         type: boolean
         default: true
+  workflow_run:
+    workflows: ["build and publish"]
+    types:
+      - completed
 
 env:
-  DOCR_REGISTRY: registry.digitalocean.com
-  DOCR_NAME: ${{ secrets.DOCR_NAME || 'xqfitness' }}
-  IMAGE_NAME: write-service
+  GITHUB_OWNER: ${{ github.repository_owner }}
+  IMAGE_NAME: chauhaidang/xq-fitness-write-service
   SERVICE_NAME: write-service
 
 jobs:
-  build-and-push:
-    name: Build and Push to DOCR
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-    outputs:
-      image_tag: ${{ steps.tag.outputs.tag }}
-      image_tag_sha: ${{ steps.tag.outputs.tag_sha }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to DigitalOcean Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.DOCR_REGISTRY }}
-          username: ${{ secrets.DO_TOKEN }}
-          password: ${{ secrets.DO_TOKEN }}
-
-      - name: Determine image tag
-        id: tag
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tag }}" ]; then
-            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            echo "tag=latest" >> $GITHUB_OUTPUT
-            echo "tag_sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=${GITHUB_REF#refs/heads/}-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./
-          file: Dockerfile
-          push: true
-          tags: |
-            ${{ env.DOCR_REGISTRY }}/${{ env.DOCR_NAME }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
-            ${{ env.DOCR_REGISTRY }}/${{ env.DOCR_NAME }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag_sha || steps.tag.outputs.tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-
-      - name: Image published
-        run: |
-          echo "✓ Published images:"
-          echo "  - ${{ env.DOCR_REGISTRY }}/${{ env.DOCR_NAME }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}"
-          if [ -n "${{ steps.tag.outputs.tag_sha }}" ]; then
-            echo "  - ${{ env.DOCR_REGISTRY }}/${{ env.DOCR_NAME }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag_sha }}"
-          fi
-
   deploy:
     name: Deploy to App Platform
-    needs: build-and-push
     runs-on: ubuntu-latest
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true')
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     permissions:
       contents: read
+      packages: read
 
     steps:
       - name: Checkout repository
@@ -108,6 +54,24 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq gettext-base
+
+      - name: Determine image tag
+        id: image-tag
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+          elif [ "${{ github.event_name }}" == "workflow_run" ]; then
+            # Use the SHA from the triggering workflow
+            IMAGE_TAG="${{ github.event.workflow_run.head_sha }}"
+          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            IMAGE_TAG="latest"
+          else
+            BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
+            IMAGE_TAG="${BRANCH_NAME}-${GITHUB_SHA::8}"
+          fi
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "✓ Using image tag: $IMAGE_TAG"
+          echo "  Image: ghcr.io/${{ env.GITHUB_OWNER }}/${{ env.IMAGE_NAME }}:$IMAGE_TAG"
 
       - name: Provision database
         id: provision-db
@@ -223,8 +187,10 @@ jobs:
           DO_TOKEN: ${{ secrets.DO_TOKEN }}
           REGION: ${{ secrets.REGION || 'sgp1' }}
           APP_NAME: ${{ secrets.APP_NAME || 'xq-fitness' }}
-          REGISTRY_NAME: ${{ env.DOCR_NAME }}
-          IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
+          GITHUB_OWNER: ${{ env.GITHUB_OWNER }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_TAG: ${{ steps.image-tag.outputs.image_tag }}
+          GITHUB_REGISTRY_CREDENTIALS: ${{ env.GITHUB_OWNER }}:${{ secrets.GITHUB_PAT || secrets.GITHUB_TOKEN }}
           DB_HOST: ${{ steps.provision-db.outputs.db_host }}
           DB_PORT: ${{ steps.provision-db.outputs.db_port }}
           DB_USER: ${{ steps.provision-db.outputs.db_user }}

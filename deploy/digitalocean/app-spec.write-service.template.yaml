@@ -12,9 +12,11 @@ services:
       - path: /xq-fitness-write-service
         preserve_path_prefix: false
     image:
-      registry_type: DOCR
-      repository: ${REGISTRY_NAME}/write-service
+      registry_type: GHCR
+      registry: ghcr.io
+      repository: ${GITHUB_OWNER}/${IMAGE_NAME}
       tag: ${IMAGE_TAG:-latest}
+      registry_credentials: ${GITHUB_REGISTRY_CREDENTIALS}
     envs:
       - key: PORT
         type: GENERAL

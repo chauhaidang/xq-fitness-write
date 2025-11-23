@@ -29,8 +29,10 @@ fi
 
 REGION="${REGION:-sgp1}"
 APP_NAME="${APP_NAME:-xq-fitness}"
-REGISTRY_NAME="${REGISTRY_NAME:-xqfitness}"
+GITHUB_OWNER="${GITHUB_OWNER:-}"
+IMAGE_NAME="${IMAGE_NAME:-chauhaidang/xq-fitness-write-service}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
+GITHUB_REGISTRY_CREDENTIALS="${GITHUB_REGISTRY_CREDENTIALS:-}"
 
 # Source database connection details (from provision-db.sh or environment)
 : "${DB_HOST:?Set DB_HOST (run provision-db.sh first or export DB_* variables)}"
@@ -51,19 +53,11 @@ fi
 echo ">> Authenticating doctl context"
 doctl auth init -t "$DO_TOKEN" >/dev/null
 
-echo ">> Ensuring container registry exists"
-if ! doctl registry get >/dev/null 2>&1; then
-  doctl registry create "$REGISTRY_NAME" >/dev/null
-  echo "   Created registry: $REGISTRY_NAME"
-else
-  CURRENT_REGISTRY_NAME=$(doctl registry get --format Name --no-header)
-  if [[ -n "$CURRENT_REGISTRY_NAME" ]]; then
-    REGISTRY_NAME="$CURRENT_REGISTRY_NAME"
-  fi
-  echo "   Using registry: $REGISTRY_NAME"
-fi
+echo ">> Using GitHub Container Registry (ghcr.io)"
+echo "   Repository: ghcr.io/${GITHUB_OWNER}/${IMAGE_NAME}"
+echo "   Tag: ${IMAGE_TAG}"
 
-export APP_NAME REGION REGISTRY_NAME IMAGE_TAG
+export APP_NAME REGION GITHUB_OWNER IMAGE_NAME IMAGE_TAG GITHUB_REGISTRY_CREDENTIALS
 export DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME
 
 # Construct SPRING_DATASOURCE_URL for read-service (Spring Boot)
