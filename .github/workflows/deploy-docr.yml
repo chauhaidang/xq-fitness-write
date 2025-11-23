@@ -1,0 +1,220 @@
+name: Build, Push, and Deploy to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'Dockerfile'
+      - '.github/workflows/deploy-docr.yml'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag (default: latest)'
+        required: false
+        default: 'latest'
+      deploy:
+        description: 'Deploy to App Platform after build'
+        required: false
+        type: boolean
+        default: true
+
+env:
+  DOCR_REGISTRY: registry.digitalocean.com
+  DOCR_NAME: ${{ secrets.DOCR_NAME || 'xqfitness' }}
+  IMAGE_NAME: write-service
+  SERVICE_NAME: write-service
+
+jobs:
+  build-and-push:
+    name: Build and Push to DOCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
+      image_tag_sha: ${{ steps.tag.outputs.tag_sha }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to DigitalOcean Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCR_REGISTRY }}
+          username: ${{ secrets.DO_TOKEN }}
+          password: ${{ secrets.DO_TOKEN }}
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "tag=latest" >> $GITHUB_OUTPUT
+            echo "tag_sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/heads/}-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./
+          file: Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCR_REGISTRY }}/${{ env.DOCR_NAME }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
+            ${{ env.DOCR_REGISTRY }}/${{ env.DOCR_NAME }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag_sha || steps.tag.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image published
+        run: |
+          echo "✓ Published images:"
+          echo "  - ${{ env.DOCR_REGISTRY }}/${{ env.DOCR_NAME }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}"
+          if [ -n "${{ steps.tag.outputs.tag_sha }}" ]; then
+            echo "  - ${{ env.DOCR_REGISTRY }}/${{ env.DOCR_NAME }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag_sha }}"
+          fi
+
+  deploy:
+    name: Deploy to App Platform
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true')
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DO_TOKEN }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq gettext-base
+
+      - name: Provision database
+        id: provision-db
+        env:
+          DO_TOKEN: ${{ secrets.DO_TOKEN }}
+          REGION: ${{ secrets.REGION || 'sgp1' }}
+          APP_NAME: ${{ secrets.APP_NAME || 'xq-fitness' }}
+          APP_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          # Provision database (idempotent - safe to run multiple times)
+          chmod +x deploy/digitalocean/provision-db.sh
+          cd deploy/digitalocean
+          
+          # Run provision-db.sh - it will create DB if needed or use existing
+          # If user exists and password not provided, script will fail (expected)
+          ./provision-db.sh 2>&1 | tee provision-output.log || {
+            echo "⚠️  Provision script exited with error, checking if DB already exists..."
+            # If script failed, try to get connection details from existing DB
+          }
+          
+          # Get connection details by querying doctl (most reliable)
+          DB_CLUSTER_NAME="${APP_NAME:-xq-fitness}-db"
+          DB_CLUSTER_ID=$(doctl databases list --output json | jq -r '.[] | select(.name=="'"$DB_CLUSTER_NAME"'") | .id' | head -n1)
+          
+          if [ -z "$DB_CLUSTER_ID" ]; then
+            echo "Error: Database cluster not found. Provision script may have failed."
+            exit 1
+          fi
+          
+          # Get connection details
+          CONNECTION_JSON=$(doctl databases connection "$DB_CLUSTER_ID" --output json)
+          DB_HOST=$(echo "$CONNECTION_JSON" | jq -r '.[0].host // .host // empty' | sed -E 's/.*@([^:]+).*/\1/' || echo "")
+          DB_PORT=$(echo "$CONNECTION_JSON" | jq -r '.[0].port // .port // empty' || echo "")
+          
+          # Extract hostname if it's a URI
+          if [[ "$DB_HOST" == *"@"* ]]; then
+            DB_HOST=$(echo "$DB_HOST" | sed -E 's/.*@([^:]+).*/\1/')
+          fi
+          
+          # Get database and user names (from script defaults or secrets)
+          DB_NAME="${APP_DB_NAME:-xq_fitness}"
+          DB_USER="${APP_DB_USER:-xq_app_user}"
+          
+          # Use secrets as fallback
+          DB_HOST="${DB_HOST:-${{ secrets.DB_HOST }}}"
+          DB_PORT="${DB_PORT:-${{ secrets.DB_PORT }}}"
+          DB_USER="${DB_USER:-${{ secrets.DB_USER }}}"
+          DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+          DB_NAME="${DB_NAME:-${{ secrets.DB_NAME }}}"
+          
+          if [ -z "$DB_HOST" ] || [ -z "$DB_PORT" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASSWORD" ] || [ -z "$DB_NAME" ]; then
+            echo "Error: Could not determine all database connection details"
+            echo "DB_HOST: ${DB_HOST:-not set}"
+            echo "DB_PORT: ${DB_PORT:-not set}"
+            echo "DB_USER: ${DB_USER:-not set}"
+            echo "DB_PASSWORD: ${DB_PASSWORD:+set (hidden)}"
+            echo "DB_NAME: ${DB_NAME:-not set}"
+            echo ""
+            echo "Note: If this is the first run, ensure DB_PASSWORD secret is set after running provision-db.sh manually"
+            exit 1
+          fi
+          
+          # Output connection details for next step
+          echo "db_host=$DB_HOST" >> $GITHUB_OUTPUT
+          echo "db_port=$DB_PORT" >> $GITHUB_OUTPUT
+          echo "db_user=$DB_USER" >> $GITHUB_OUTPUT
+          echo "db_password=$DB_PASSWORD" >> $GITHUB_OUTPUT
+          echo "db_name=$DB_NAME" >> $GITHUB_OUTPUT
+          
+          echo "✓ Database provisioned/verified"
+          echo "  Host: $DB_HOST"
+          echo "  Port: $DB_PORT"
+          echo "  Database: $DB_NAME"
+          echo "  User: $DB_USER"
+
+      - name: Create or update App Platform app
+        id: app-setup
+        env:
+          DO_TOKEN: ${{ secrets.DO_TOKEN }}
+          REGION: ${{ secrets.REGION || 'sgp1' }}
+          APP_NAME: ${{ secrets.APP_NAME || 'xq-fitness' }}
+          REGISTRY_NAME: ${{ env.DOCR_NAME }}
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
+          DB_HOST: ${{ steps.provision-db.outputs.db_host }}
+          DB_PORT: ${{ steps.provision-db.outputs.db_port }}
+          DB_USER: ${{ steps.provision-db.outputs.db_user }}
+          DB_PASSWORD: ${{ steps.provision-db.outputs.db_password }}
+          DB_NAME: ${{ steps.provision-db.outputs.db_name }}
+        run: |
+          # Use the deploy-service.sh script to create/update app
+          chmod +x deploy/digitalocean/deploy-service.sh
+          cd deploy/digitalocean
+          ./deploy-service.sh ${{ env.SERVICE_NAME }}
+          
+          # Get APP_ID by querying doctl (most reliable method)
+          APP_ID=$(doctl apps list --output json | jq -r '.[] | select(.spec.name=="'"${{ secrets.APP_NAME || 'xq-fitness' }}"'") | .id' | head -n1)
+          
+          if [ -z "$APP_ID" ]; then
+            echo "Error: Could not determine APP_ID"
+            exit 1
+          fi
+          
+          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
+          echo "✓ App ID: $APP_ID"
+
+      - name: Deploy to App Platform
+        uses: digitalocean/app_action/deploy@v2
+        with:
+          token: ${{ secrets.DO_TOKEN }}
+          app_id: ${{ steps.app-setup.outputs.app_id }}
+
