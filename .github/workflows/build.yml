@@ -197,7 +197,7 @@ jobs:
           REGION: ${{ secrets.REGION || 'sgp1' }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           IMAGE_TAG: ${{ steps.image-tag.outputs.tag || 'latest' }}
-          GITHUB_REGISTRY_CREDENTIALS: ${{ env.GITHUB_OWNER }}:${{ secrets.GITHUB_PAT || secrets.GITHUB_TOKEN }}
+          GITHUB_REGISTRY_CREDENTIALS: ${{ env.GITHUB_OWNER }}:${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           DB_HOST: ${{ steps.provision-db.outputs.db_host }}
           DB_PORT: ${{ steps.provision-db.outputs.db_port }}
           DB_USER: ${{ steps.provision-db.outputs.db_user }}
@@ -215,6 +215,9 @@ jobs:
           if grep -q 'registry_credentials: ""' .do/app.rendered.yaml; then
             sed -i '/registry_credentials: ""$/d' .do/app.rendered.yaml
           fi
+          
+          # Also remove the comment line
+          sed -i '/# Remove the line below if your image is public/d' .do/app.rendered.yaml
           
           echo "✓ Rendered app spec"
           echo "Preview (first 30 lines):"
