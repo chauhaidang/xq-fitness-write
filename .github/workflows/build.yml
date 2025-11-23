@@ -204,9 +204,28 @@ jobs:
           DB_PASSWORD: ${{ steps.provision-db.outputs.db_password }}
           DB_NAME: ${{ steps.provision-db.outputs.db_name }}
         run: |
-          # Ensure IMAGE_TAG is set (fallback to latest)
+          # Export all required variables for envsubst
+          export APP_NAME="${APP_NAME}"
+          export REGION="${REGION}"
+          export IMAGE_NAME="${IMAGE_NAME}"
           export IMAGE_TAG="${IMAGE_TAG:-latest}"
-          echo "Using IMAGE_TAG: $IMAGE_TAG"
+          export DB_HOST="${DB_HOST}"
+          export DB_PORT="${DB_PORT}"
+          export DB_USER="${DB_USER}"
+          export DB_PASSWORD="${DB_PASSWORD}"
+          export DB_NAME="${DB_NAME}"
+          
+          # Debug: show what will be substituted
+          echo ">> Variables for substitution:"
+          echo "  APP_NAME: $APP_NAME"
+          echo "  REGION: $REGION"
+          echo "  IMAGE_NAME: $IMAGE_NAME"
+          echo "  IMAGE_TAG: $IMAGE_TAG"
+          echo "  DB_HOST: $DB_HOST"
+          echo "  DB_PORT: $DB_PORT"
+          echo "  DB_USER: $DB_USER"
+          echo "  DB_NAME: $DB_NAME"
+          echo ""
           
           # Render .do/app.yaml from template
           envsubst < .do/app.yaml > .do/app.rendered.yaml
