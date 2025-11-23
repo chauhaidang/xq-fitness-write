@@ -30,7 +30,7 @@ fi
 REGION="${REGION:-sgp1}"
 APP_NAME="${APP_NAME:-xq-fitness}"
 GITHUB_OWNER="${GITHUB_OWNER:-}"
-IMAGE_NAME="${IMAGE_NAME:-chauhaidang/xq-fitness-write-service}"
+IMAGE_NAME="${IMAGE_NAME:-xq-fitness-write-service}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 GITHUB_REGISTRY_CREDENTIALS="${GITHUB_REGISTRY_CREDENTIALS:-}"
 
