@@ -59,6 +59,16 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install doctl and dependencies
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DO_TOKEN }}
+
+      - name: Install additional dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq gettext-base
      
       - name: Provision database
         id: provision-db
@@ -166,36 +176,70 @@ jobs:
           echo "  Host: $DB_HOST"
           echo "  Port: $DB_PORT"
           echo "  Database: $DB_NAME"
-          echo "  User: $
-          
-          # Get APP_ID by querying doctl (most reliable method)
-          APP_ID=$(doctl apps list --output json | jq -r '.[] | select(.spec.name=="'"${{ secrets.APP_NAME || 'xq-fitness' }}"'") | .id' | head -n1)
-          
-          if [ -z "$APP_ID" ]; then
-            echo "Error: Could not determine APP_ID"
-            exit 1
-          fi
-          
-          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
-          echo "✓ App ID: $APP_ID"
+          echo "  User: $DB_USER"
 
-      - name: Deploy the app
-        uses: digitalocean/app_action/deploy@v2
+      - name: Determine image tag
+        id: image-tag
+        run: |
+          # Extract the latest tag from metadata (for main branch it will be 'latest')
+          # For other branches, use branch name or sha
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          else
+            BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
+            echo "tag=${BRANCH_NAME}-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Render app spec
+        id: render-spec
         env:
-          DIGEST: ${{ steps.push.outputs.digest }}
-          GHCR_CREDENTIALS: ${{ secrets.GHCR_CREDENTIALS }}
-          DO_TOKEN: ${{ secrets.DO_TOKEN }}
-          REGION: ${{ secrets.REGION || 'sgp1' }}
           APP_NAME: ${{ secrets.APP_NAME || 'xq-fitness' }}
-          GITHUB_OWNER: ${{ env.GITHUB_OWNER }}
+          REGION: ${{ secrets.REGION || 'sgp1' }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          IMAGE_TAG: ${{ steps.push.outputs.image_tag }}
+          IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
           GITHUB_REGISTRY_CREDENTIALS: ${{ env.GITHUB_OWNER }}:${{ secrets.GITHUB_PAT || secrets.GITHUB_TOKEN }}
           DB_HOST: ${{ steps.provision-db.outputs.db_host }}
           DB_PORT: ${{ steps.provision-db.outputs.db_port }}
           DB_USER: ${{ steps.provision-db.outputs.db_user }}
           DB_PASSWORD: ${{ steps.provision-db.outputs.db_password }}
           DB_NAME: ${{ steps.provision-db.outputs.db_name }}
+        run: |
+          # Render .do/app.yaml from template
+          envsubst < .do/app.yaml > .do/app.rendered.yaml
+          
+          # Remove empty registry_credentials if needed
+          if grep -q 'registry_credentials: ""' .do/app.rendered.yaml; then
+            sed -i '/registry_credentials: ""$/d' .do/app.rendered.yaml
+          fi
+          
+          echo "✓ Rendered app spec"
+          echo "Preview (first 30 lines):"
+          head -n 30 .do/app.rendered.yaml
+
+      - name: Create or update App Platform app
+        id: app-setup
+        env:
+          APP_NAME: ${{ secrets.APP_NAME || 'xq-fitness' }}
+        run: |
+          # Get existing app ID if it exists
+          APP_ID=$(doctl apps list --output json | jq -r '.[] | select(.spec.name=="'"$APP_NAME"'") | .id' | head -n1)
+          
+          if [ -z "$APP_ID" ]; then
+            echo "Creating new app..."
+            CREATE_RESPONSE=$(doctl apps create --spec .do/app.rendered.yaml --output json)
+            APP_ID=$(echo "$CREATE_RESPONSE" | jq -r '.app.id // .id // empty')
+            echo "Created app: $APP_ID"
+          else
+            echo "Updating existing app: $APP_ID"
+            doctl apps update "$APP_ID" --spec .do/app.rendered.yaml --output json
+            echo "Updated app: $APP_ID"
+          fi
+          
+          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
+          echo "✓ App ID: $APP_ID"
+
+      - name: Deploy to App Platform
+        uses: digitalocean/app_action/deploy@v2
         with:
           token: ${{ secrets.DO_TOKEN }}
-          app_id: ${{ steps.provision-db.outputs.app_id }}
+          app_id: ${{ steps.app-setup.outputs.app_id }}
