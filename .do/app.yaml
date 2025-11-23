@@ -12,7 +12,7 @@ services:
       - path: /xq-fitness-write-service
         preserve_path_prefix: false
     image:
-      registry_type: DOCKER_HUB
+      registry_type: GHCR
       registry: ghcr.io
       repository: ${IMAGE_NAME}
       tag: ${IMAGE_TAG}
