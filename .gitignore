@@ -9,3 +9,4 @@ nginx-gateway.conf
 generated-clients/
 coverage
 tsr/
+.DS_Store
