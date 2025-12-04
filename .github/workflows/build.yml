@@ -14,9 +14,60 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/xq-fitness-write-service
   GITHUB_OWNER: ${{ github.repository_owner }}
   SERVICE_NAME: write-service
+  APP_ID: 7960143e-c80f-496d-9992-f24430bb77ff
+  APP_NAME: xq-fitness
 
 jobs:
+  unit-tests:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate api client
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run generate:client
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            test/component/tsr/
+            coverage/
+          retention-days: 7
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/lcov-report/
+          retention-days: 7
+
   build-and-push:
+    name: Build and Push Docker Image
+    needs: unit-tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -58,6 +109,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
+            GITHUB_ACTOR=${{ github.actor }}
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
       - name: Install doctl and dependencies
@@ -69,19 +121,21 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq gettext-base
+          # Install yq for YAML manipulation
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
      
       - name: Provision database
         id: provision-db
         env:
           DO_TOKEN: ${{ secrets.DO_TOKEN }}
-          REGION: ${{ secrets.REGION || 'sgp1' }}
-          APP_NAME: ${{ secrets.APP_NAME || 'xq-fitness' }}
+          REGION: 'sgp1'
+          APP_NAME: 'xq-fitness'
           APP_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           # Provision database (idempotent - safe to run multiple times)
-          chmod +x deploy/digitalocean/provision-db.sh
-          cd deploy/digitalocean
-          
+          chmod +x scripts/provision-db.sh
+          cd scripts/
           # Run provision-db.sh - it will create DB if needed or use existing
           # If user exists and password not provided, script will fail (expected)
           ./provision-db.sh 2>&1 | tee provision-output.log || {
@@ -193,9 +247,8 @@ jobs:
       - name: Render app spec
         id: render-spec
         env:
-          APP_NAME: ${{ secrets.APP_NAME || 'xq-fitness' }}
-          REGION: ${{ secrets.REGION || 'sgp1' }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          APP_NAME: 'xq-fitness'
+          REGION: 'sgp1'
           IMAGE_TAG: ${{ steps.image-tag.outputs.tag || 'latest' }}
           GITHUB_REGISTRY_CREDENTIALS: ${{ env.GITHUB_OWNER }}:${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           DB_HOST: ${{ steps.provision-db.outputs.db_host }}
@@ -230,93 +283,59 @@ jobs:
           # Render .do/app.yaml from template
           envsubst < .do/app.yaml > .do/app.rendered.yaml
           
-          # Remove empty registry_credentials if needed
-          if grep -q 'registry_credentials: ""' .do/app.rendered.yaml; then
-            sed -i '/registry_credentials: ""$/d' .do/app.rendered.yaml
-          fi
-          
-          # Also remove the comment line
-          sed -i '/# Remove the line below if your image is public/d' .do/app.rendered.yaml
-          
           echo "✓ Rendered app spec"
           echo "Preview (first 30 lines):"
           head -n 30 .do/app.rendered.yaml
 
-      - name: Create or update App Platform app
-        id: app-setup
+      - name: Merge app spec with existing services
+        id: merge-spec
         env:
-          APP_NAME: ${{ secrets.APP_NAME || 'xq-fitness' }}
+          APP_NAME: 'xq-fitness'
+          GITHUB_REGISTRY_CREDENTIALS: ${{ github.repository_owner }}:${{ secrets.GITHUB_TOKEN }}
+          DB_PASSWORD: ${{ steps.provision-db.outputs.db_password }}
         run: |
-          # Validate rendered spec exists
+          set -euo pipefail
+          
           if [ ! -f .do/app.rendered.yaml ]; then
             echo "Error: Rendered app spec file not found" >&2
             exit 1
           fi
           
-          # Show rendered spec for debugging
-          echo ">> Rendered app spec:"
-          cat .do/app.rendered.yaml
-          echo ""
+          # Merge rendered spec with existing app spec (preserves other services)
+          chmod +x scripts/merge-app-spec.sh
+          ./scripts/merge-app-spec.sh .do/app.rendered.yaml "$APP_NAME" .do/app.merged.yaml
           
-          # Validate spec
-          echo ">> Validating app spec..."
-          if doctl apps spec validate .do/app.rendered.yaml 2>&1; then
-            echo "✓ Spec validation passed"
-          else
-            echo "⚠️  Spec validation failed, but continuing..."
+          # Output merged spec file path
+          echo "merged_spec_file=.do/app.merged.yaml" >> $GITHUB_OUTPUT
+          echo "✓ Merged app spec: .do/app.merged.yaml"
+
+      - name: Create or update App Platform app
+        id: app-setup
+        run: |
+          set -euo pipefail
+          
+          MERGED_SPEC="${{ steps.merge-spec.outputs.merged_spec_file }}"
+          
+          if [ ! -f "$MERGED_SPEC" ]; then
+            echo "Error: Merged spec file not found: $MERGED_SPEC" >&2
+            exit 1
           fi
           
-          # Get existing app ID if it exists
-          APP_ID=$(doctl apps list --output json 2>/dev/null | jq -r '.[] | select(.spec.name=="'"$APP_NAME"'") | .id' | head -n1 || echo "")
-          
-          if [ -z "$APP_ID" ]; then
-            echo "Creating new app..."
-            CREATE_RESPONSE=$(doctl apps create --spec .do/app.rendered.yaml --output json 2>&1)
-            CREATE_EXIT_CODE=$?
-            
-            if [ $CREATE_EXIT_CODE -ne 0 ]; then
-              echo "Error creating app (exit code: $CREATE_EXIT_CODE):" >&2
-              echo "$CREATE_RESPONSE" >&2
-              echo "" >&2
-              echo "Rendered spec file:" >&2
-              cat .do/app.rendered.yaml >&2
-              exit 1
-            fi
-            
-            # Check if response is valid JSON
-            if ! echo "$CREATE_RESPONSE" | jq empty 2>/dev/null; then
-              echo "Error: doctl returned non-JSON response:" >&2
-              echo "$CREATE_RESPONSE" >&2
-              exit 1
-            fi
-            
-            APP_ID=$(echo "$CREATE_RESPONSE" | jq -r '.app.id // .id // empty')
-            if [ -z "$APP_ID" ]; then
-              echo "Error: Could not extract app ID from create response:" >&2
-              echo "$CREATE_RESPONSE" >&2
-              exit 1
-            fi
-            echo "Created app: $APP_ID"
-          else
-            echo "Updating existing app: $APP_ID"
-            if ! UPDATE_RESPONSE=$(doctl apps update "$APP_ID" --spec .do/app.rendered.yaml --output json 2>&1); then
-              echo "Error updating app:" >&2
-              echo "$UPDATE_RESPONSE" >&2
-              echo "" >&2
-              echo "Rendered spec file:" >&2
-              cat .do/app.rendered.yaml >&2
-              exit 1
-            fi
-            echo "Updated app: $APP_ID"
+          # Update existing app
+          echo "Updating existing app: $APP_ID"
+          if ! doctl apps update "$APP_ID" --spec "$MERGED_SPEC" --output json >/dev/null 2>&1; then
+            echo "Error updating app" >&2
+            exit 1
           fi
+          
+          echo "✓ Updated app: $APP_ID"
           
           echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
-          echo "✓ App ID: $APP_ID"
 
       - name: Deploy to App Platform
         uses: digitalocean/app_action/deploy@v2
         with:
           token: ${{ secrets.DO_TOKEN }}
           app_name: ${{ secrets.APP_NAME || 'xq-fitness' }}
-          app_spec_location: .do/app.rendered.yaml
+          app_spec_location: ${{ steps.merge-spec.outputs.merged_spec_file }}
           print_deploy_logs: true
