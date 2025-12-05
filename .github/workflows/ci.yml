@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'src/**'
-      - 'ci.yml'
+      - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 env:
@@ -120,6 +120,7 @@ jobs:
         run: npm run test:component:ci
 
       - name: Stop environment
+        if: always()
         run: xq-infra down
       
       - name: Present tsr
