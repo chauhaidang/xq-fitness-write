@@ -52,14 +52,7 @@ jobs:
           ./build-read-service.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: build read-service
-        run: |
-          chmod +x ./build-read-service.sh
-          ./build-read-service.sh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+          
       - name: Generate write-service api client
         env:
           GITHUB_ACTOR: ${{ github.actor }}
