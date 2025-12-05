@@ -121,7 +121,9 @@ jobs:
 
       - name: Stop environment
         if: always()
-        run: xq-infra down
+        run: |
+          xq-infra logs
+          xq-infra down
       
       - name: Present tsr
         if: success() || failure()
