@@ -48,11 +48,11 @@ jobs:
 
       - name: build write-service
         run: |
-          chmod +x ./build-read-service.sh
-          ./build-read-service.sh
+          chmod +x ./build-write-service.sh
+          ./build-write-service.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Generate write-service api client
         env:
           GITHUB_ACTOR: ${{ github.actor }}
