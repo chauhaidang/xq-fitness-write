@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'src/**'
-      - 'build.yml'
+      - 'ci.yml'
   workflow_dispatch:
 
 env:
@@ -16,6 +16,10 @@ env:
   SERVICE_NAME: write-service
   APP_ID: 7960143e-c80f-496d-9992-f24430bb77ff
   APP_NAME: xq-fitness
+  GITHUB_ACTOR: ${{ github.actor }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  DO_TOKEN: ${{ secrets.DO_TOKEN }}
 
 jobs:
   unit-tests:
@@ -36,33 +40,22 @@ jobs:
           cache: 'npm'
           registry-url: 'https://npm.pkg.github.com/'
           scope: '@chauhaidang'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install global tools
         run: |
           npm install -g @chauhaidang/xq-test-infra
           npm install -g @openapitools/openapi-generator-cli
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       - name: build write-service
         run: |
           chmod +x ./build-write-service.sh
           ./build-write-service.sh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate write-service api client
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run generate:client
 
       - name: Install dependencies
         run: npm ci
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Run unit tests
         run: npm run test:unit
@@ -85,7 +78,56 @@ jobs:
           path: coverage/lcov-report/
           retention-days: 7
 
-  build-and-push:
+  component-tests:
+    name: Run Component Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com/'
+          scope: '@chauhaidang'
+
+      - name: Install global tools
+        run: |
+          npm install -g @chauhaidang/xq-test-infra
+          npm install -g @openapitools/openapi-generator-cli
+
+      - name: build write-service
+        run: |
+          chmod +x ./build-write-service.sh
+          ./build-write-service.sh
+
+      - name: Generate write-service api client
+        run: npm run generate:client
+
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Start up environment
+        run: xq-infra generate -f ./test-env && xq-infra up
+
+      - name: Run component tests
+        run: npm run test:component:ci
+
+      - name: Stop environment
+        run: xq-infra down
+      
+      - name: Present tsr
+        if: success() || failure()
+        working-directory: ./
+        run: cat test/component/tsr/report.md >> $GITHUB_STEP_SUMMARY
+
+  dockerize-and-deploy:
     name: Build and Push Docker Image
     needs: unit-tests
     runs-on: ubuntu-latest
@@ -104,7 +146,6 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata
@@ -148,7 +189,6 @@ jobs:
       - name: Provision database
         id: provision-db
         env:
-          DO_TOKEN: ${{ secrets.DO_TOKEN }}
           REGION: 'sgp1'
           APP_NAME: 'xq-fitness'
           APP_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
