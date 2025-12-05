@@ -12,11 +12,18 @@ module.exports = {
   bail: false,
   collectCoverageFrom: [],
   moduleFileExtensions: ['ts', 'js', 'json'],
+  // ts-jest configuration (v29+ syntax)
   transform: {
     '^.+\\.ts$': [
       'ts-jest',
       {
         tsconfig: '<rootDir>/tsconfig.json',
+        // Optional: enable faster compilation (disables type checking during tests)
+        // isolatedModules: true,
+        // Optional: show TypeScript diagnostics
+        // diagnostics: {
+        //   warnOnly: true, // Show warnings instead of errors
+        // },
       },
     ],
   },
