@@ -129,7 +129,7 @@ jobs:
 
   dockerize-and-deploy:
     name: Build and Push Docker Image
-    needs: unit-tests
+    needs: [unit-tests, component-tests]
     runs-on: ubuntu-latest
     permissions:
       contents: read
