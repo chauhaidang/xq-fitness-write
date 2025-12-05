@@ -17,8 +17,7 @@
     "format:check": "prettier --check \"**/*.{ts,js,json,md}\"",
     "lint": "eslint . --ext .ts,.js",
     "lint:fix": "eslint . --ext .ts,.js --fix",
-    "generate:client": "./scripts/generate-api-client.sh",
-    "generate:client:write": "./scripts/generate-api-client.sh write-service",
+    "generate:client": "./scripts/generate-api-client.sh write-service",
     "clean:clients": "rm -rf generated-clients/"
   },
   "keywords": [
