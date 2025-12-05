@@ -34,16 +34,43 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com/'
+          scope: '@chauhaidang'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install global tools
+        run: |
+          npm install -g @chauhaidang/xq-test-infra
+          npm install -g @openapitools/openapi-generator-cli
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
-      - name: Generate api client
+      - name: build write-service
+        run: |
+          chmod +x ./build-read-service.sh
+          ./build-read-service.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: build read-service
+        run: |
+          chmod +x ./build-read-service.sh
+          ./build-read-service.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate write-service api client
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run generate:client
 
+      - name: Install dependencies
+        run: npm ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
       - name: Run unit tests
         run: npm run test:unit
 
