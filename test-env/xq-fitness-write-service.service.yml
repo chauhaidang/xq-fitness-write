@@ -7,3 +7,4 @@ environment:
   DB_USER: xq_user
   DB_PASSWORD: xq_password
   DB_HOST: xq-fitness-db
+  DB_SSL: 'false'
