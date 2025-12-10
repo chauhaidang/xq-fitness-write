@@ -45,17 +45,49 @@ class WorkoutDaySetController {
   static async updateWorkoutDaySet(req, res) {
     try {
       const { setId } = req.params;
-      const exists = await WorkoutDaySetModel.exists(setId);
+      const { workoutDayId, muscleGroupId } = req.query;
+      
+      let actualSetId = setId;
 
-      if (!exists) {
-        return res.status(404).json({
-          code: 'NOT_FOUND',
-          message: 'Workout day set not found',
-          timestamp: new Date().toISOString(),
-        });
+      // If query parameters are provided, use them to find the setId
+      if (workoutDayId || muscleGroupId) {
+        // Both query parameters must be provided together
+        if (!workoutDayId || !muscleGroupId) {
+          return res.status(400).json({
+            code: 'VALIDATION_ERROR',
+            message: 'Both workoutDayId and muscleGroupId query parameters must be provided together',
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        const workoutDaySet = await WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(
+          parseInt(workoutDayId),
+          parseInt(muscleGroupId)
+        );
+
+        if (!workoutDaySet) {
+          return res.status(404).json({
+            code: 'NOT_FOUND',
+            message: 'Workout day set not found for the given workout day and muscle group',
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        actualSetId = workoutDaySet.id;
+      } else {
+        // Use setId from path parameter (backward compatible)
+        const exists = await WorkoutDaySetModel.exists(setId);
+
+        if (!exists) {
+          return res.status(404).json({
+            code: 'NOT_FOUND',
+            message: 'Workout day set not found',
+            timestamp: new Date().toISOString(),
+          });
+        }
       }
 
-      const workoutDaySet = await WorkoutDaySetModel.update(setId, req.validatedBody);
+      const workoutDaySet = await WorkoutDaySetModel.update(actualSetId, req.validatedBody);
       res.status(200).json(workoutDaySet);
     } catch (error) {
       console.error('Error updating workout day set:', error);

@@ -28,6 +28,16 @@ class WorkoutDaySetModel {
     return this.transformRow(result.rows[0]);
   }
 
+  static async findByWorkoutDayAndMuscleGroup(workoutDayId, muscleGroupId) {
+    const query = `
+      SELECT * FROM workout_day_sets
+      WHERE workout_day_id = $1 AND muscle_group_id = $2
+      LIMIT 1
+    `;
+    const result = await db.query(query, [workoutDayId, muscleGroupId]);
+    return result.rows.length > 0 ? this.transformRow(result.rows[0]) : null;
+  }
+
   static async update(id, data) {
     const updates = [];
     const values = [];
@@ -55,7 +65,10 @@ class WorkoutDaySetModel {
     `;
 
     const result = await db.query(query, values);
-    return result.rows[0];
+    if (!result.rows || result.rows.length === 0) {
+      throw new Error('Workout day set not found');
+    }
+    return this.transformRow(result.rows[0]);
   }
 
   static async delete(id) {

@@ -251,6 +251,7 @@ describe('WorkoutDaySetModel', () => {
   describe('update', () => {
     describe('Happy path', () => {
       it('should update all fields', async () => {
+        const createdAt = new Date();
         const updatedAt = new Date();
         const mockDbRow = {
           id: 1,
@@ -258,6 +259,7 @@ describe('WorkoutDaySetModel', () => {
           muscle_group_id: 3,
           number_of_sets: 5,
           notes: 'Increased volume',
+          created_at: createdAt,
           updated_at: updatedAt,
         };
 
@@ -279,63 +281,99 @@ describe('WorkoutDaySetModel', () => {
           expect.stringContaining('updated_at = CURRENT_TIMESTAMP'),
           expect.any(Array)
         );
-        expect(result).toEqual(mockDbRow);
+        expect(result).toEqual({
+          id: 1,
+          workoutDayId: 5,
+          muscleGroupId: 3,
+          numberOfSets: 5,
+          notes: 'Increased volume',
+          createdAt: createdAt,
+          updatedAt: updatedAt,
+        });
       });
 
       it('should update only numberOfSets', async () => {
-        const mockWorkoutDaySet = {
+        const mockDbRow = {
           id: 1,
-          numberOfSets: 6,
+          workout_day_id: 5,
+          muscle_group_id: 3,
+          number_of_sets: 6,
+          notes: null,
+          created_at: new Date(),
+          updated_at: new Date(),
         };
 
-        db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = { numberOfSets: 6 };
 
-        await WorkoutDaySetModel.update(1, data);
+        const result = await WorkoutDaySetModel.update(1, data);
 
         expect(db.query).toHaveBeenCalledWith(
           expect.stringContaining('number_of_sets = $1'),
           expect.arrayContaining([6, 1])
         );
+        expect(result.numberOfSets).toBe(6);
+        expect(result.workoutDayId).toBe(5);
+        expect(result.muscleGroupId).toBe(3);
       });
 
       it('should update only notes', async () => {
-        const mockWorkoutDaySet = {
+        const mockDbRow = {
           id: 2,
+          workout_day_id: 5,
+          muscle_group_id: 3,
+          number_of_sets: 4,
           notes: 'New notes',
+          created_at: new Date(),
+          updated_at: new Date(),
         };
 
-        db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = { notes: 'New notes' };
 
-        await WorkoutDaySetModel.update(2, data);
+        const result = await WorkoutDaySetModel.update(2, data);
 
         expect(db.query).toHaveBeenCalledWith(
           expect.stringContaining('notes = $1'),
           expect.arrayContaining(['New notes', 2])
         );
+        expect(result.notes).toBe('New notes');
       });
 
       it('should handle updating notes to null', async () => {
-        const mockWorkoutDaySet = {
+        const mockDbRow = {
           id: 3,
+          workout_day_id: 5,
+          muscle_group_id: 3,
+          number_of_sets: 4,
           notes: null,
+          created_at: new Date(),
+          updated_at: new Date(),
         };
 
-        db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = { notes: null };
 
-        await WorkoutDaySetModel.update(3, data);
+        const result = await WorkoutDaySetModel.update(3, data);
 
         expect(db.query).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining([null, 3]));
+        expect(result.notes).toBeNull();
       });
 
       it('should use correct parameter numbering for multiple fields', async () => {
-        const mockWorkoutDaySet = { id: 4 };
-        db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
+        const mockDbRow = {
+          id: 4,
+          workout_day_id: 5,
+          muscle_group_id: 3,
+          number_of_sets: 4,
+          notes: 'Notes',
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = {
           numberOfSets: 4,
@@ -351,8 +389,16 @@ describe('WorkoutDaySetModel', () => {
       });
 
       it('should use RETURNING clause', async () => {
-        const mockWorkoutDaySet = { id: 5 };
-        db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
+        const mockDbRow = {
+          id: 5,
+          workout_day_id: 5,
+          muscle_group_id: 3,
+          number_of_sets: 3,
+          notes: null,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         await WorkoutDaySetModel.update(5, { numberOfSets: 3 });
 
@@ -360,8 +406,16 @@ describe('WorkoutDaySetModel', () => {
       });
 
       it('should always update updatedAt timestamp', async () => {
-        const mockWorkoutDaySet = { id: 6 };
-        db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
+        const mockDbRow = {
+          id: 6,
+          workout_day_id: 5,
+          muscle_group_id: 3,
+          number_of_sets: 3,
+          notes: null,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         await WorkoutDaySetModel.update(6, { numberOfSets: 3 });
 
@@ -372,12 +426,21 @@ describe('WorkoutDaySetModel', () => {
       });
 
       it('should handle updating numberOfSets to 1', async () => {
-        const mockWorkoutDaySet = { id: 7, numberOfSets: 1 };
-        db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
+        const mockDbRow = {
+          id: 7,
+          workout_day_id: 5,
+          muscle_group_id: 3,
+          number_of_sets: 1,
+          notes: null,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
-        await WorkoutDaySetModel.update(7, { numberOfSets: 1 });
+        const result = await WorkoutDaySetModel.update(7, { numberOfSets: 1 });
 
         expect(db.query).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining([1, 7]));
+        expect(result.numberOfSets).toBe(1);
       });
     });
 
@@ -399,20 +462,27 @@ describe('WorkoutDaySetModel', () => {
         await expect(WorkoutDaySetModel.update(1, data)).rejects.toThrow('Database error');
       });
 
-      it('should handle non-existent workout day set id', async () => {
+      it('should throw error when workout day set does not exist', async () => {
         db.query.mockResolvedValue({ rows: [] });
 
         const data = { numberOfSets: 5 };
-        const result = await WorkoutDaySetModel.update(999, data);
 
-        expect(result).toBeUndefined();
+        await expect(WorkoutDaySetModel.update(999, data)).rejects.toThrow('Workout day set not found');
       });
     });
 
     describe('Edge cases', () => {
       it('should handle string id parameter', async () => {
-        const mockWorkoutDaySet = { id: 1 };
-        db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
+        const mockDbRow = {
+          id: 1,
+          workout_day_id: 5,
+          muscle_group_id: 3,
+          number_of_sets: 3,
+          notes: null,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         await WorkoutDaySetModel.update('1', { numberOfSets: 3 });
 
@@ -420,8 +490,16 @@ describe('WorkoutDaySetModel', () => {
       });
 
       it('should ignore undefined fields', async () => {
-        const mockWorkoutDaySet = { id: 1 };
-        db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
+        const mockDbRow = {
+          id: 1,
+          workout_day_id: 5,
+          muscle_group_id: 3,
+          number_of_sets: 5,
+          notes: null,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
         const data = {
           numberOfSets: 5,
@@ -436,12 +514,168 @@ describe('WorkoutDaySetModel', () => {
       });
 
       it('should handle very large numberOfSets', async () => {
-        const mockWorkoutDaySet = { id: 1, numberOfSets: 100 };
-        db.query.mockResolvedValue({ rows: [mockWorkoutDaySet] });
+        const mockDbRow = {
+          id: 1,
+          workout_day_id: 5,
+          muscle_group_id: 3,
+          number_of_sets: 100,
+          notes: null,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
 
-        await WorkoutDaySetModel.update(1, { numberOfSets: 100 });
+        const result = await WorkoutDaySetModel.update(1, { numberOfSets: 100 });
 
         expect(db.query).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining([100, 1]));
+        expect(result.numberOfSets).toBe(100);
+      });
+    });
+  });
+
+  describe('findByWorkoutDayAndMuscleGroup', () => {
+    describe('Happy path', () => {
+      it('should find a workout day set by workoutDayId and muscleGroupId', async () => {
+        const createdAt = new Date();
+        const updatedAt = new Date();
+        const mockDbRow = {
+          id: 1,
+          workout_day_id: 5,
+          muscle_group_id: 3,
+          number_of_sets: 4,
+          notes: 'Test notes',
+          created_at: createdAt,
+          updated_at: updatedAt,
+        };
+
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
+
+        const result = await WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(5, 3);
+
+        expect(db.query).toHaveBeenCalledTimes(1);
+        expect(db.query).toHaveBeenCalledWith(
+          expect.stringContaining('SELECT * FROM workout_day_sets'),
+          [5, 3]
+        );
+        expect(db.query).toHaveBeenCalledWith(
+          expect.stringContaining('WHERE workout_day_id = $1 AND muscle_group_id = $2'),
+          expect.any(Array)
+        );
+        expect(db.query).toHaveBeenCalledWith(
+          expect.stringContaining('LIMIT 1'),
+          expect.any(Array)
+        );
+        expect(result).toEqual({
+          id: 1,
+          workoutDayId: 5,
+          muscleGroupId: 3,
+          numberOfSets: 4,
+          notes: 'Test notes',
+          createdAt: createdAt,
+          updatedAt: updatedAt,
+        });
+      });
+
+      it('should return null when workout day set does not exist', async () => {
+        db.query.mockResolvedValue({ rows: [] });
+
+        const result = await WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(999, 999);
+
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), [999, 999]);
+        expect(result).toBeNull();
+      });
+
+      it('should transform database row to camelCase', async () => {
+        const mockDbRow = {
+          id: 2,
+          workout_day_id: 10,
+          muscle_group_id: 7,
+          number_of_sets: 3,
+          notes: null,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
+
+        const result = await WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(10, 7);
+
+        expect(result).toHaveProperty('workoutDayId');
+        expect(result).toHaveProperty('muscleGroupId');
+        expect(result).toHaveProperty('numberOfSets');
+        expect(result).toHaveProperty('createdAt');
+        expect(result).toHaveProperty('updatedAt');
+        expect(result).not.toHaveProperty('workout_day_id');
+        expect(result).not.toHaveProperty('muscle_group_id');
+        expect(result).not.toHaveProperty('number_of_sets');
+      });
+    });
+
+    describe('Error scenarios', () => {
+      it('should throw error when database query fails', async () => {
+        const dbError = new Error('Database connection failed');
+        db.query.mockRejectedValue(dbError);
+
+        await expect(
+          WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(5, 3)
+        ).rejects.toThrow('Database connection failed');
+      });
+
+      it('should return null when database returns empty result', async () => {
+        db.query.mockResolvedValue({ rows: [] });
+
+        const result = await WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(5, 3);
+
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('Edge cases', () => {
+      it('should handle string parameters', async () => {
+        const mockDbRow = {
+          id: 1,
+          workout_day_id: 5,
+          muscle_group_id: 3,
+          number_of_sets: 4,
+          notes: null,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
+
+        await WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup('5', '3');
+
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), ['5', '3']);
+      });
+
+      it('should handle very large workoutDayId and muscleGroupId', async () => {
+        const largeWorkoutDayId = 999999999;
+        const largeMuscleGroupId = 888888888;
+        db.query.mockResolvedValue({ rows: [] });
+
+        await WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(largeWorkoutDayId, largeMuscleGroupId);
+
+        expect(db.query).toHaveBeenCalledWith(expect.any(String), [largeWorkoutDayId, largeMuscleGroupId]);
+      });
+
+      it('should use LIMIT 1 to ensure only one result', async () => {
+        const mockDbRow = {
+          id: 1,
+          workout_day_id: 5,
+          muscle_group_id: 3,
+          number_of_sets: 4,
+          notes: null,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+
+        db.query.mockResolvedValue({ rows: [mockDbRow] });
+
+        await WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(5, 3);
+
+        const query = db.query.mock.calls[0][0];
+        expect(query).toContain('LIMIT 1');
       });
     });
   });

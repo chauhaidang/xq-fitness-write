@@ -31,11 +31,35 @@ export class ApiClient {
 
   /**
    * Extract error details from API error response
+   * Handles ResponseError from generated client which has response property
    */
-  private extractErrorDetails(error: any): { status?: number; message: string; body?: any } {
-    const status = error.status || error.response?.status || error.statusCode;
+  private async extractErrorDetails(error: any): Promise<{ status?: number; message: string; body?: any }> {
+    let status: number | undefined;
+    let body: any;
+    
+    // Handle ResponseError from generated client (has response property)
+    if (error.response && typeof error.response.status === 'number') {
+      status = error.response.status;
+      // Try to parse response body
+      try {
+        const clonedResponse = error.response.clone();
+        body = await clonedResponse.json();
+      } catch (e) {
+        // If JSON parsing fails, try text
+        try {
+          const clonedResponse = error.response.clone();
+          body = await clonedResponse.text();
+        } catch (e2) {
+          // If both fail, body remains undefined
+        }
+      }
+    } else {
+      // Fallback to other error formats
+      status = error.status || error.response?.status || error.statusCode;
+      body = error.body || error.response?.data || error.response?.body || error.data;
+    }
+    
     const message = error.message || 'Unknown error';
-    const body = error.body || error.response?.data || error.response?.body || error.data;
     
     return { status, message, body };
   }
@@ -43,8 +67,8 @@ export class ApiClient {
   /**
    * Handle API errors with detailed logging
    */
-  private handleError(operation: string, error: any): never {
-    const { status, message, body } = this.extractErrorDetails(error);
+  private async handleError(operation: string, error: any): Promise<never> {
+    const { status, message, body } = await this.extractErrorDetails(error);
     
     logger.error(`❌ Failed to ${operation}`);
     logger.error(`Error status: ${status || 'unknown'}`);
@@ -76,7 +100,7 @@ export class ApiClient {
       logger.info(`✅ Created routine: ${result.id} - ${result.name}`);
       return result;
     } catch (error) {
-      this.handleError(`create routine "${data.name}"`, error);
+      return await this.handleError(`create routine "${data.name}"`, error);
     }
   }
 
@@ -93,7 +117,7 @@ export class ApiClient {
         updateRoutineRequest: data,
       });
     } catch (error) {
-      this.handleError(`update routine ${id}`, error);
+      return await this.handleError(`update routine ${id}`, error);
     }
   }
 
@@ -106,7 +130,7 @@ export class ApiClient {
         routineId: id,
       });
     } catch (error) {
-      this.handleError(`delete routine ${id}`, error);
+      return await this.handleError(`delete routine ${id}`, error);
     }
   }
 
@@ -121,7 +145,7 @@ export class ApiClient {
       logger.info(`✅ Created workout day: ${result.id} - ${result.dayName} (Day ${result.dayNumber})`);
       return result;
     } catch (error) {
-      this.handleError(`create workout day "${data.dayName}" for routine ${data.routineId}`, error);
+      return await this.handleError(`create workout day "${data.dayName}" for routine ${data.routineId}`, error);
     }
   }
 
@@ -138,7 +162,7 @@ export class ApiClient {
         updateWorkoutDayRequest: data,
       });
     } catch (error) {
-      this.handleError(`update workout day ${id}`, error);
+      return await this.handleError(`update workout day ${id}`, error);
     }
   }
 
@@ -151,7 +175,7 @@ export class ApiClient {
         dayId: id,
       });
     } catch (error) {
-      this.handleError(`delete workout day ${id}`, error);
+      return await this.handleError(`delete workout day ${id}`, error);
     }
   }
 
@@ -170,24 +194,50 @@ export class ApiClient {
       logger.info(`✅ Created workout day sets: ${result.id} (muscle group ${data.muscleGroupId}, ${data.numberOfSets} sets)`);
       return result;
     } catch (error) {
-      this.handleError(`create workout day sets for workout day ${data.workoutDayId} (muscle group ${data.muscleGroupId})`, error);
+      return await this.handleError(`create workout day sets for workout day ${data.workoutDayId} (muscle group ${data.muscleGroupId})`, error);
     }
   }
 
   /**
-   * Update workout day sets
+   * Update workout day sets by setId
    */
   async updateWorkoutDaySets(
     id: number,
-    data: Partial<{ muscleGroupId: number; numberOfSets: number }>
+    data: Partial<{ numberOfSets: number; notes?: string }>
   ): Promise<WorkoutDaySetResponse> {
     try {
-      return await this.workoutDaySetsApi.updateWorkoutDaySet({
+      const result = await this.workoutDaySetsApi.updateWorkoutDaySet({
         setId: id,
         updateWorkoutDaySetRequest: data,
       });
+      logger.info(`✅ Updated workout day sets: ${result.id} - workoutDayId: ${result.workoutDayId}, muscleGroupId: ${result.muscleGroupId}`);
+      return result;
     } catch (error) {
-      this.handleError(`update workout day sets ${id}`, error);
+      return await this.handleError(`update workout day sets ${id}`, error);
+    }
+  }
+
+  /**
+   * Update workout day sets by workoutDayId and muscleGroupId (query parameters)
+   * This method allows updating when you only know the workout day and muscle group IDs
+   */
+  async updateWorkoutDaySetsByQuery(
+    workoutDayId: number,
+    muscleGroupId: number,
+    data: Partial<{ numberOfSets: number; notes?: string }>
+  ): Promise<WorkoutDaySetResponse> {
+    try {
+      // Use setId=0 (or any value) since query params take precedence
+      const result = await this.workoutDaySetsApi.updateWorkoutDaySet({
+        setId: 0, // Path parameter (ignored when query params are provided)
+        workoutDayId: workoutDayId, // Query parameter
+        muscleGroupId: muscleGroupId, // Query parameter
+        updateWorkoutDaySetRequest: data,
+      });
+      logger.info(`✅ Updated workout day sets via query params (workoutDayId: ${workoutDayId}, muscleGroupId: ${muscleGroupId})`);
+      return result;
+    } catch (error) {
+      return await this.handleError(`update workout day sets by query (workoutDayId: ${workoutDayId}, muscleGroupId: ${muscleGroupId})`, error);
     }
   }
 
@@ -200,7 +250,7 @@ export class ApiClient {
         setId: id,
       });
     } catch (error) {
-      this.handleError(`delete workout day sets ${id}`, error);
+      return await this.handleError(`delete workout day sets ${id}`, error);
     }
   }
 }

@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: XQ Fitness Write Service API
   description: Write service for creating, updating, and deleting workout routines and related data
-  version: 1.0.0
+  version: 1.1.0
   contact:
     name: XQ Fitness Team
 
@@ -279,15 +279,36 @@ paths:
   /workout-day-sets/{setId}:
     put:
       summary: Update sets configuration
-      description: Updates the number of sets for a muscle group on a workout day
+      description: |
+        Updates the number of sets for a muscle group on a workout day.
+        
+        **Usage options:**
+        1. Provide `setId` in the path (e.g., `/workout-day-sets/123`) - traditional method
+        2. Provide `workoutDayId` and `muscleGroupId` as query parameters (e.g., `/workout-day-sets/0?workoutDayId=1&muscleGroupId=2`) - alternative method when setId is unknown
+        
+        When query parameters are provided, they take precedence and the setId in the path is ignored.
       operationId: updateWorkoutDaySet
       tags:
         - Workout Day Sets
       parameters:
         - name: setId
           in: path
-          description: ID of the sets configuration to update
+          description: ID of the sets configuration to update. Can be any value (e.g., 0) when using query parameters.
           required: true
+          schema:
+            type: integer
+            format: int64
+        - name: workoutDayId
+          in: query
+          description: ID of the workout day (alternative to setId). Must be provided together with muscleGroupId.
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: muscleGroupId
+          in: query
+          description: ID of the muscle group (alternative to setId). Must be provided together with workoutDayId.
+          required: false
           schema:
             type: integer
             format: int64
