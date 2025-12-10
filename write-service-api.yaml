@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: XQ Fitness Write Service API
   description: Write service for creating, updating, and deleting workout routines and related data
-  version: 1.1.0
+  version: 1.1.1
   contact:
     name: XQ Fitness Team
 
@@ -240,7 +240,12 @@ paths:
   /workout-day-sets:
     post:
       summary: Add sets configuration to a workout day
-      description: Creates a new sets configuration for a muscle group on a workout day
+      description: |
+        Creates a new sets configuration for a muscle group on a workout day.
+        
+        **Upsert behavior:** If a sets configuration already exists for the given workout day and muscle group,
+        it will be updated instead of creating a new one. This prevents duplicate entries and allows
+        easy updates without needing to know the setId.
       operationId: createWorkoutDaySet
       tags:
         - Workout Day Sets
@@ -253,6 +258,12 @@ paths:
       responses:
         '201':
           description: Sets configuration created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkoutDaySetResponse'
+        '200':
+          description: Sets configuration updated successfully (when it already existed)
           content:
             application/json:
               schema:

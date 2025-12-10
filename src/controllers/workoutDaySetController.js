@@ -14,12 +14,25 @@ class WorkoutDaySetController {
         });
       }
 
+      // Check if a workout day set already exists for this workout day and muscle group
+      const existingSet = await WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(
+        req.validatedBody.workoutDayId,
+        req.validatedBody.muscleGroupId
+      );
+
+      if (existingSet) {
+        // If it exists, update it instead of creating a new one (upsert behavior)
+        const updatedSet = await WorkoutDaySetModel.update(existingSet.id, req.validatedBody);
+        return res.status(200).json(updatedSet);
+      }
+
+      // Create new workout day set if it doesn't exist
       const workoutDaySet = await WorkoutDaySetModel.create(req.validatedBody);
       res.status(201).json(workoutDaySet);
     } catch (error) {
       console.error('Error creating workout day set:', error);
       if (error.code === '23505') {
-        // Unique constraint violation
+        // Unique constraint violation (shouldn't happen now, but keep for safety)
         return res.status(400).json({
           code: 'DUPLICATE_ERROR',
           message: 'This muscle group already has a set configuration for this workout day',
