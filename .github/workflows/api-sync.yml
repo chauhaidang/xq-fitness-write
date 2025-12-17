@@ -25,18 +25,18 @@ jobs:
         id: check
         run: |
           # Get current version
-          current_version=$(grep -m 1 "version:" write-service-api.yaml | sed 's/.*version: *//' | tr -d ' ')
+          current_version=$(grep -m 1 "version:" api/write-service-api.yaml | sed 's/.*version: *//' | tr -d ' ')
           echo "current_version=$current_version" >> $GITHUB_OUTPUT
 
           # Get previous version (if file existed in previous commit)
-          if git show HEAD~1:write-service-api.yaml &>/dev/null; then
-            previous_version=$(git show HEAD~1:write-service-api.yaml | grep -m 1 "version:" | sed 's/.*version: *//' | tr -d ' ')
+          if git show HEAD~1:api/write-service-api.yaml &>/dev/null; then
+            previous_version=$(git show HEAD~1:api/write-service-api.yaml | grep -m 1 "version:" | sed 's/.*version: *//' | tr -d ' ')
             echo "Previous version: $previous_version"
             echo "Current version: $current_version"
 
             if [ "$current_version" != "$previous_version" ]; then
               echo "version_changed=true" >> $GITHUB_OUTPUT
-              echo "Version changed from $previous_version to $current_version"
+              echo "Version changed from $previous_version to $current_vers ion"
             else
               echo "version_changed=false" >> $GITHUB_OUTPUT
               echo "Version unchanged"
@@ -84,7 +84,7 @@ jobs:
           mkdir -p api/write-service
 
           # Copy the API definition file
-          cp ../write-service/write-service-api.yaml api/write-service/
+          cp ../write-service/api/write-service-api.yaml api/write-service/
 
           # Add and commit changes
           git add api/write-service/write-service-api.yaml

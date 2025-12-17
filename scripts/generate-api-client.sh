@@ -15,8 +15,8 @@ if [ -z "$1" ]; then
   echo -e "${YELLOW}Example: $0 write-service${NC}"
   echo ""
   echo -e "${BLUE}Available services:${NC}"
-  echo -e "  - write-service (write-service-api.yaml)"
-  echo -e "  - read-service  (read-service-api.yaml) [future]"
+  echo -e "  - write-service (api/write-service-api.yaml)"
+  echo -e "  - read-service  (api/read-service-api.yaml) [future]"
   exit 1
 fi
 
@@ -26,7 +26,7 @@ echo -e "${BLUE}🔧 Generating TypeScript API Client for ${YELLOW}${SERVICE_NAM
 
 # Configuration
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SPEC_FILE="$PROJECT_ROOT/${SERVICE_NAME}-api.yaml"
+SPEC_FILE="$PROJECT_ROOT/api/${SERVICE_NAME}-api.yaml"
 OUTPUT_DIR="$PROJECT_ROOT/generated-clients/${SERVICE_NAME}"
 # Extract service prefix (e.g., "write-service" -> "write")
 SERVICE_PREFIX="${SERVICE_NAME%-service}"
@@ -35,7 +35,7 @@ PACKAGE_NAME="xq-fitness-${SERVICE_PREFIX}-client"
 # Validate spec exists
 if [ ! -f "$SPEC_FILE" ]; then
   echo -e "${RED}❌ OpenAPI spec not found: $SPEC_FILE${NC}"
-  echo -e "${YELLOW}Expected location: ${SERVICE_NAME}-api.yaml${NC}"
+  echo -e "${YELLOW}Expected location: api/${SERVICE_NAME}-api.yaml${NC}"
   exit 1
 fi
 
@@ -53,10 +53,12 @@ rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
 # Generate TypeScript client
+# Note: Using typescript-fetch generator. Alternative: typescript-axios (has better error handling)
+# To use axios instead, change -g to typescript-axios and add axios dependency
 echo -e "${BLUE}📝 Generating client code from OpenAPI spec...${NC}"
 openapi-generator-cli generate \
   -i "$SPEC_FILE" \
-  -g typescript-fetch \
+  -g typescript-axios \
   -o "$OUTPUT_DIR" \
   --additional-properties=supportsES6=true,npmName=${PACKAGE_NAME},npmVersion=1.0.0
 

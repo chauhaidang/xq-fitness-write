@@ -111,6 +111,14 @@ Base URL: `http://localhost:3000/api/v1`
 - `PUT /workout-day-sets/{id}` - Update sets configuration
 - `DELETE /workout-day-sets/{id}` - Delete sets configuration
 
+### Snapshots
+
+- `POST /routines/{routineId}/snapshots` - Create a weekly snapshot for a routine
+  - Creates a snapshot of the current routine data (workout days and sets) for the current week
+  - Resets all sets (`numberOfSets`) to zero after snapshot creation
+  - If a snapshot already exists for the current week, it will be replaced
+  - Returns the created snapshot with `id`, `routineId`, `weekStartDate`, and `createdAt`
+
 ## Docker Image Publishing
 
 This service is automatically published to GitHub Container Registry (GHCR) on every push to the `main` branch.

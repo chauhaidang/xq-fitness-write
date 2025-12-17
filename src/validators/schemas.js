@@ -37,6 +37,10 @@ const updateWorkoutDaySetSchema = Joi.object({
   notes: Joi.string().max(1000).allow(null, ''),
 }).min(1);
 
+const createSnapshotSchema = Joi.object({
+  routineId: Joi.number().integer().positive().required(),
+});
+
 module.exports = {
   createRoutineSchema,
   updateRoutineSchema,
@@ -44,4 +48,5 @@ module.exports = {
   updateWorkoutDaySchema,
   createWorkoutDaySetSchema,
   updateWorkoutDaySetSchema,
+  createSnapshotSchema,
 };

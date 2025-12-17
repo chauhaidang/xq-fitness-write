@@ -8,9 +8,11 @@ import {
   RoutinesApi,
   WorkoutDaysApi,
   WorkoutDaySetsApi,
+  SnapshotsApi,
   RoutineResponse,
   WorkoutDayResponse,
   WorkoutDaySetResponse,
+  WeeklySnapshotResponse,
 } from 'xq-fitness-write-client';
 import { logger } from '@chauhaidang/xq-js-common-kit';
 
@@ -18,6 +20,7 @@ export class ApiClient {
   private routinesApi: RoutinesApi;
   private workoutDaysApi: WorkoutDaysApi;
   private workoutDaySetsApi: WorkoutDaySetsApi;
+  private snapshotsApi: SnapshotsApi;
 
   constructor(baseUrl: string) {
     const config = new Configuration({
@@ -27,36 +30,26 @@ export class ApiClient {
     this.routinesApi = new RoutinesApi(config);
     this.workoutDaysApi = new WorkoutDaysApi(config);
     this.workoutDaySetsApi = new WorkoutDaySetsApi(config);
+    this.snapshotsApi = new SnapshotsApi(config);
   }
 
   /**
    * Extract error details from API error response
-   * Handles ResponseError from generated client which has response property
+   * Handles AxiosError from generated axios client
    */
-  private async extractErrorDetails(error: any): Promise<{ status?: number; message: string; body?: any }> {
+  private extractErrorDetails(error: any): { status?: number; message: string; body?: any } {
     let status: number | undefined;
     let body: any;
     
-    // Handle ResponseError from generated client (has response property)
+    // Handle AxiosError from generated axios client
+    // Axios errors have error.response.status and error.response.data (already parsed JSON)
     if (error.response && typeof error.response.status === 'number') {
       status = error.response.status;
-      // Try to parse response body
-      try {
-        const clonedResponse = error.response.clone();
-        body = await clonedResponse.json();
-      } catch (e) {
-        // If JSON parsing fails, try text
-        try {
-          const clonedResponse = error.response.clone();
-          body = await clonedResponse.text();
-        } catch (e2) {
-          // If both fail, body remains undefined
-        }
-      }
+      body = error.response.data; // Axios automatically parses JSON responses
     } else {
       // Fallback to other error formats
-      status = error.status || error.response?.status || error.statusCode;
-      body = error.body || error.response?.data || error.response?.body || error.data;
+      status = error.status || error.statusCode;
+      body = error.body || error.data;
     }
     
     const message = error.message || 'Unknown error';
@@ -67,8 +60,8 @@ export class ApiClient {
   /**
    * Handle API errors with detailed logging
    */
-  private async handleError(operation: string, error: any): Promise<never> {
-    const { status, message, body } = await this.extractErrorDetails(error);
+  private handleError(operation: string, error: any): never {
+    const { status, message, body } = this.extractErrorDetails(error);
     
     logger.error(`❌ Failed to ${operation}`);
     logger.error(`Error status: ${status || 'unknown'}`);
@@ -94,11 +87,9 @@ export class ApiClient {
    */
   async createRoutine(data: { name: string; description?: string; isActive: boolean }): Promise<RoutineResponse> {
     try {
-      const result = await this.routinesApi.createRoutine({
-        createRoutineRequest: data,
-      });
-      logger.info(`✅ Created routine: ${result.id} - ${result.name}`);
-      return result;
+      const result = await this.routinesApi.createRoutine(data);
+      logger.info(`✅ Created routine: ${result.data.id} - ${result.data.name}`);
+      return result.data;
     } catch (error) {
       return await this.handleError(`create routine "${data.name}"`, error);
     }
@@ -112,10 +103,8 @@ export class ApiClient {
     data: Partial<{ name: string; description?: string; isActive: boolean }>
   ): Promise<RoutineResponse> {
     try {
-      return await this.routinesApi.updateRoutine({
-        routineId: id,
-        updateRoutineRequest: data,
-      });
+      const result = await this.routinesApi.updateRoutine(id, data);
+      return result.data;
     } catch (error) {
       return await this.handleError(`update routine ${id}`, error);
     }
@@ -126,9 +115,7 @@ export class ApiClient {
    */
   async deleteRoutine(id: number): Promise<void> {
     try {
-      return await this.routinesApi.deleteRoutine({
-        routineId: id,
-      });
+      await this.routinesApi.deleteRoutine(id);
     } catch (error) {
       return await this.handleError(`delete routine ${id}`, error);
     }
@@ -139,11 +126,9 @@ export class ApiClient {
    */
   async createWorkoutDay(data: { routineId: number; dayNumber: number; dayName: string }): Promise<WorkoutDayResponse> {
     try {
-      const result = await this.workoutDaysApi.createWorkoutDay({
-        createWorkoutDayRequest: data,
-      });
-      logger.info(`✅ Created workout day: ${result.id} - ${result.dayName} (Day ${result.dayNumber})`);
-      return result;
+      const result = await this.workoutDaysApi.createWorkoutDay(data);
+      logger.info(`✅ Created workout day: ${result.data.id} - ${result.data.dayName} (Day ${result.data.dayNumber})`);
+      return result.data;
     } catch (error) {
       return await this.handleError(`create workout day "${data.dayName}" for routine ${data.routineId}`, error);
     }
@@ -157,10 +142,8 @@ export class ApiClient {
     data: Partial<{ dayNumber: number; dayName: string }>
   ): Promise<WorkoutDayResponse> {
     try {
-      return await this.workoutDaysApi.updateWorkoutDay({
-        dayId: id,
-        updateWorkoutDayRequest: data,
-      });
+      const result = await this.workoutDaysApi.updateWorkoutDay(id, data);
+      return result.data;
     } catch (error) {
       return await this.handleError(`update workout day ${id}`, error);
     }
@@ -171,9 +154,7 @@ export class ApiClient {
    */
   async deleteWorkoutDay(id: number): Promise<void> {
     try {
-      return await this.workoutDaysApi.deleteWorkoutDay({
-        dayId: id,
-      });
+      await this.workoutDaysApi.deleteWorkoutDay(id);
     } catch (error) {
       return await this.handleError(`delete workout day ${id}`, error);
     }
@@ -188,11 +169,9 @@ export class ApiClient {
     numberOfSets: number;
   }): Promise<WorkoutDaySetResponse> {
     try {
-      const result = await this.workoutDaySetsApi.createWorkoutDaySet({
-        createWorkoutDaySetRequest: data,
-      });
-      logger.info(`✅ Created workout day sets: ${result.id} (muscle group ${data.muscleGroupId}, ${data.numberOfSets} sets)`);
-      return result;
+      const result = await this.workoutDaySetsApi.createWorkoutDaySet(data);
+      logger.info(`✅ Created workout day sets: ${result.data.id} (muscle group ${data.muscleGroupId}, ${data.numberOfSets} sets)`);
+      return result.data;
     } catch (error) {
       return await this.handleError(`create workout day sets for workout day ${data.workoutDayId} (muscle group ${data.muscleGroupId})`, error);
     }
@@ -206,12 +185,9 @@ export class ApiClient {
     data: Partial<{ numberOfSets: number; notes?: string }>
   ): Promise<WorkoutDaySetResponse> {
     try {
-      const result = await this.workoutDaySetsApi.updateWorkoutDaySet({
-        setId: id,
-        updateWorkoutDaySetRequest: data,
-      });
-      logger.info(`✅ Updated workout day sets: ${result.id} - workoutDayId: ${result.workoutDayId}, muscleGroupId: ${result.muscleGroupId}`);
-      return result;
+      const result = await this.workoutDaySetsApi.updateWorkoutDaySet(id, data);
+      logger.info(`✅ Updated workout day sets: ${result.data.id} - workoutDayId: ${result.data.workoutDayId}, muscleGroupId: ${result.data.muscleGroupId}`);
+      return result.data;
     } catch (error) {
       return await this.handleError(`update workout day sets ${id}`, error);
     }
@@ -228,14 +204,9 @@ export class ApiClient {
   ): Promise<WorkoutDaySetResponse> {
     try {
       // Use setId=0 (or any value) since query params take precedence
-      const result = await this.workoutDaySetsApi.updateWorkoutDaySet({
-        setId: 0, // Path parameter (ignored when query params are provided)
-        workoutDayId: workoutDayId, // Query parameter
-        muscleGroupId: muscleGroupId, // Query parameter
-        updateWorkoutDaySetRequest: data,
-      });
+      const result = await this.workoutDaySetsApi.updateWorkoutDaySet(0, data, workoutDayId, muscleGroupId);
       logger.info(`✅ Updated workout day sets via query params (workoutDayId: ${workoutDayId}, muscleGroupId: ${muscleGroupId})`);
-      return result;
+      return result.data;
     } catch (error) {
       return await this.handleError(`update workout day sets by query (workoutDayId: ${workoutDayId}, muscleGroupId: ${muscleGroupId})`, error);
     }
@@ -246,11 +217,22 @@ export class ApiClient {
    */
   async deleteWorkoutDaySets(id: number): Promise<void> {
     try {
-      return await this.workoutDaySetsApi.deleteWorkoutDaySet({
-        setId: id,
-      });
+      await this.workoutDaySetsApi.deleteWorkoutDaySet(id);
     } catch (error) {
       return await this.handleError(`delete workout day sets ${id}`, error);
+    }
+  }
+
+  /**
+   * Create a weekly snapshot for a routine
+   */
+  async createSnapshot(routineId: number): Promise<WeeklySnapshotResponse> {
+    try {
+      const result = await this.snapshotsApi.createWeeklySnapshot(routineId);
+      logger.info(`✅ Created snapshot: ${result.data.id} for routine ${routineId}, week ${result.data.weekStartDate}`);
+      return result.data;
+    } catch (error) {
+      return this.handleError(`create snapshot for routine ${routineId}`, error);
     }
   }
 }

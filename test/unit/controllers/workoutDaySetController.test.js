@@ -8,9 +8,13 @@ jest.mock('../../../src/models/workoutDayModel');
 
 describe('WorkoutDaySetController', () => {
   let req, res;
+  let consoleErrorSpy;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Mock console.error to suppress expected error logs in tests
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     req = {
       validatedBody: {},
@@ -23,6 +27,10 @@ describe('WorkoutDaySetController', () => {
       json: jest.fn().mockReturnThis(),
       send: jest.fn().mockReturnThis(),
     };
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   describe('createWorkoutDaySet', () => {

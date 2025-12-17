@@ -73,6 +73,20 @@ class WorkoutDayModel {
     const result = await db.query(query, [id]);
     return result?.rows?.[0]?.exists || false;
   }
+
+  /**
+   * Find all workout days for a routine
+   */
+  static async findByRoutineId(routineId, client = null) {
+    const queryFn = client ? client.query.bind(client) : db.query;
+    const query = `
+      SELECT * FROM workout_days
+      WHERE routine_id = $1
+      ORDER BY day_number
+    `;
+    const result = await queryFn(query, [routineId]);
+    return result.rows.map((row) => this.transformRow(row));
+  }
 }
 
 module.exports = WorkoutDayModel;

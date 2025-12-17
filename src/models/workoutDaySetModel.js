@@ -82,6 +82,37 @@ class WorkoutDaySetModel {
     const result = await db.query(query, [id]);
     return result?.rows?.[0]?.exists || false;
   }
+
+  /**
+   * Find all workout day sets for a routine (via workout days)
+   */
+  static async findByRoutineId(routineId, client = null) {
+    const queryFn = client ? client.query.bind(client) : db.query;
+    const query = `
+      SELECT wds.* FROM workout_day_sets wds
+      JOIN workout_days wd ON wds.workout_day_id = wd.id
+      WHERE wd.routine_id = $1
+      ORDER BY wd.day_number, wds.muscle_group_id
+    `;
+    const result = await queryFn(query, [routineId]);
+    return result.rows.map((row) => this.transformRow(row));
+  }
+
+  /**
+   * Reset all sets to zero for a routine
+   */
+  static async resetSetsByRoutineId(routineId, client = null) {
+    const queryFn = client ? client.query.bind(client) : db.query;
+    const query = `
+      UPDATE workout_day_sets
+      SET number_of_sets = 0, updated_at = CURRENT_TIMESTAMP
+      WHERE workout_day_id IN (
+        SELECT id FROM workout_days WHERE routine_id = $1
+      )
+    `;
+    const result = await queryFn(query, [routineId]);
+    return result.rowCount;
+  }
 }
 
 module.exports = WorkoutDaySetModel;
