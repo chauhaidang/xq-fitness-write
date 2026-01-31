@@ -24,13 +24,5 @@
     ],
     "no-console": "off"
   },
-  "ignorePatterns": [
-    "node_modules",
-    "dist",
-    "coverage",
-    "test/component/tsr",
-    "*.js",
-    "!.eslintrc.js",
-    "!jest.config*.js"
-  ]
+  "ignorePatterns": ["node_modules", "dist", "coverage", "test/component/tsr", "test/unit/tsr", "*.js", "!.eslintrc.js"]
 }

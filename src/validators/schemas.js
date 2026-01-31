@@ -41,6 +41,24 @@ const createSnapshotSchema = Joi.object({
   routineId: Joi.number().integer().positive().required(),
 });
 
+const createExerciseSchema = Joi.object({
+  workoutDayId: Joi.number().integer().positive().required(),
+  muscleGroupId: Joi.number().integer().positive().required(),
+  exerciseName: Joi.string().min(1).max(200).required(),
+  totalReps: Joi.number().integer().min(0).required(),
+  weight: Joi.number().min(0).required(),
+  totalSets: Joi.number().integer().min(0).required(),
+  notes: Joi.string().max(1000).allow(null, ''),
+});
+
+const updateExerciseSchema = Joi.object({
+  exerciseName: Joi.string().min(1).max(200),
+  totalReps: Joi.number().integer().min(0),
+  weight: Joi.number().min(0),
+  totalSets: Joi.number().integer().min(0),
+  notes: Joi.string().max(1000).allow(null, ''),
+}).min(1);
+
 module.exports = {
   createRoutineSchema,
   updateRoutineSchema,
@@ -49,4 +67,6 @@ module.exports = {
   createWorkoutDaySetSchema,
   updateWorkoutDaySetSchema,
   createSnapshotSchema,
+  createExerciseSchema,
+  updateExerciseSchema,
 };

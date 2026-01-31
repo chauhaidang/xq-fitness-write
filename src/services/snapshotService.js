@@ -15,32 +15,34 @@ class SnapshotService {
   static calculateWeekStartDate() {
     // Use UTC to avoid timezone issues
     const now = new Date();
-    const utcNow = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      now.getUTCHours(),
-      now.getUTCMinutes(),
-      now.getUTCSeconds()
-    ));
-    
+    const utcNow = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        now.getUTCHours(),
+        now.getUTCMinutes(),
+        now.getUTCSeconds()
+      )
+    );
+
     // Get day of week in UTC (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
     const dayOfWeek = utcNow.getUTCDay();
     // Convert to ISO 8601: Monday = 1, Sunday = 7
     const isoDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
     // Calculate days to subtract to get to Monday
     const daysToSubtract = isoDayOfWeek - 1;
-    
+
     // Calculate Monday in UTC
     const monday = new Date(utcNow);
     monday.setUTCDate(utcNow.getUTCDate() - daysToSubtract);
     monday.setUTCHours(0, 0, 0, 0);
-    
+
     // Format as YYYY-MM-DD using UTC methods
     const year = monday.getUTCFullYear();
     const month = String(monday.getUTCMonth() + 1).padStart(2, '0');
     const day = String(monday.getUTCDate()).padStart(2, '0');
-    
+
     return `${year}-${month}-${day}`;
   }
 
@@ -77,10 +79,7 @@ class SnapshotService {
       await WeeklySnapshotModel.deleteByRoutineAndWeek(routineId, weekStartDate, client);
 
       // Create snapshot
-      const snapshot = await WeeklySnapshotModel.create(
-        { routineId, weekStartDate },
-        client
-      );
+      const snapshot = await WeeklySnapshotModel.create({ routineId, weekStartDate }, client);
 
       // Create snapshot workout days
       const snapshotDaysData = workoutDays.map((day) => ({

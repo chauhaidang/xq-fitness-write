@@ -1,6 +1,6 @@
 /**
  * Database Helper for Component Tests
- * 
+ *
  * Provides database connection, health checks, and query utilities
  * for component tests that need direct database access.
  */
@@ -66,7 +66,9 @@ export class DatabaseHelper {
     try {
       const result = await this.query('SELECT NOW() as current_time');
       logger.info(`✅ Database connection verified: ${result.rows[0].current_time}`);
-      logger.info(`   Connected to: ${this.config.host}:${this.config.port}/${this.config.database} as ${this.config.user}`);
+      logger.info(
+        `   Connected to: ${this.config.host}:${this.config.port}/${this.config.database} as ${this.config.user}`
+      );
     } catch (error: any) {
       logger.error('❌ Failed to connect to test database');
       logger.error(`   Host: ${this.config.host}:${this.config.port}`);
@@ -75,12 +77,12 @@ export class DatabaseHelper {
       logger.error(`   SSL: ${JSON.stringify(this.config.ssl)}`);
       logger.error(`   Error: ${error.message}`);
       logger.error(`   Code: ${error.code || 'N/A'}`);
-      
+
       // Provide helpful error message
       if (error.code === 'ECONNREFUSED') {
         throw new Error(
           `Database connection refused. Is PostgreSQL running on ${this.config.host}:${this.config.port}? ` +
-          `Start the database container with: docker run -d --name xq-fitness-db -p 5432:5432 -e POSTGRES_DB=xq_fitness -e POSTGRES_USER=xq_user -e POSTGRES_PASSWORD=xq_password ghcr.io/chauhaidang/xq-fitness-db:latest`
+            `Start the database container with: docker run -d --name xq-fitness-db -p 5432:5432 -e POSTGRES_DB=xq_fitness -e POSTGRES_USER=xq_user -e POSTGRES_PASSWORD=xq_password ghcr.io/chauhaidang/xq-fitness-db:latest`
         );
       } else if (error.code === 'ENOTFOUND') {
         throw new Error(`Database host not found: ${this.config.host}. Check your DB_HOST environment variable.`);
@@ -89,7 +91,7 @@ export class DatabaseHelper {
       } else if (error.code === '3D000' || error.message.includes('does not exist')) {
         throw new Error(`Database '${this.config.database}' does not exist. Check your DB_NAME environment variable.`);
       }
-      
+
       throw new Error(`Database connection failed: ${error.message} (code: ${error.code || 'N/A'})`);
     }
   }
@@ -158,15 +160,15 @@ export class DatabaseHelper {
           )`,
           [tableName]
         );
-        
+
         if (!tableCheck.rows[0].exists) {
           throw new Error(
             `Required table '${tableName}' does not exist. ` +
-            `Please ensure database migration 001_add_weekly_snapshots.sql has been applied.`
+              `Please ensure database migration 001_add_weekly_snapshots.sql has been applied.`
           );
         }
       }
-      
+
       logger.info(`✅ Database schema verified: All required tables (${requiredTables.join(', ')}) exist`);
     } catch (error: any) {
       logger.error('❌ Database schema verification failed:', error.message);
@@ -178,11 +180,7 @@ export class DatabaseHelper {
    * Verify snapshot-related tables exist
    */
   async verifySnapshotSchema(): Promise<void> {
-    const requiredTables = [
-      'weekly_snapshots',
-      'snapshot_workout_days',
-      'snapshot_workout_day_sets'
-    ];
+    const requiredTables = ['weekly_snapshots', 'snapshot_workout_days', 'snapshot_workout_day_sets'];
     await this.verifySchema(requiredTables);
   }
 
@@ -204,7 +202,7 @@ export class DatabaseHelper {
     try {
       // Check connection
       result.connection = await this.checkConnection();
-      
+
       if (!result.connection) {
         logger.error('❌ Database connection health check failed');
         return result;
@@ -224,7 +222,7 @@ export class DatabaseHelper {
       }
 
       result.healthy = result.connection && result.schema;
-      
+
       if (result.healthy) {
         logger.info('✅ Database health check passed');
       } else {

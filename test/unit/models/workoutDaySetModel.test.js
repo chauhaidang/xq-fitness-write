@@ -553,18 +553,12 @@ describe('WorkoutDaySetModel', () => {
         const result = await WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(5, 3);
 
         expect(db.query).toHaveBeenCalledTimes(1);
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('SELECT * FROM workout_day_sets'),
-          [5, 3]
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('SELECT * FROM workout_day_sets'), [5, 3]);
         expect(db.query).toHaveBeenCalledWith(
           expect.stringContaining('WHERE workout_day_id = $1 AND muscle_group_id = $2'),
           expect.any(Array)
         );
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('LIMIT 1'),
-          expect.any(Array)
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('LIMIT 1'), expect.any(Array));
         expect(result).toEqual({
           id: 1,
           workoutDayId: 5,
@@ -616,9 +610,9 @@ describe('WorkoutDaySetModel', () => {
         const dbError = new Error('Database connection failed');
         db.query.mockRejectedValue(dbError);
 
-        await expect(
-          WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(5, 3)
-        ).rejects.toThrow('Database connection failed');
+        await expect(WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(5, 3)).rejects.toThrow(
+          'Database connection failed'
+        );
       });
 
       it('should return null when database returns empty result', async () => {

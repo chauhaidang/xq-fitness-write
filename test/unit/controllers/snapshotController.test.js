@@ -12,7 +12,7 @@ describe('SnapshotController', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Mock console.error to suppress expected error logs in tests
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 

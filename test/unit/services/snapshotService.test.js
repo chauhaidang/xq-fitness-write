@@ -23,7 +23,7 @@ describe('SnapshotService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Mock console methods to suppress expected logs in tests
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -191,15 +191,8 @@ describe('SnapshotService', () => {
         expect(WorkoutDaySetModel.findByRoutineId).toHaveBeenCalledWith(routineId, mockClient);
 
         // Verify snapshot creation
-        expect(WeeklySnapshotModel.deleteByRoutineAndWeek).toHaveBeenCalledWith(
-          routineId,
-          weekStartDate,
-          mockClient
-        );
-        expect(WeeklySnapshotModel.create).toHaveBeenCalledWith(
-          { routineId, weekStartDate },
-          mockClient
-        );
+        expect(WeeklySnapshotModel.deleteByRoutineAndWeek).toHaveBeenCalledWith(routineId, weekStartDate, mockClient);
+        expect(WeeklySnapshotModel.create).toHaveBeenCalledWith({ routineId, weekStartDate }, mockClient);
 
         // Verify snapshot days creation
         expect(SnapshotWorkoutDayModel.bulkCreate).toHaveBeenCalledWith(
@@ -308,11 +301,7 @@ describe('SnapshotService', () => {
 
         const result = await SnapshotService.createSnapshot(routineId);
 
-        expect(WeeklySnapshotModel.deleteByRoutineAndWeek).toHaveBeenCalledWith(
-          routineId,
-          weekStartDate,
-          mockClient
-        );
+        expect(WeeklySnapshotModel.deleteByRoutineAndWeek).toHaveBeenCalledWith(routineId, weekStartDate, mockClient);
         expect(result).toEqual(mockSnapshot);
       });
     });
@@ -376,12 +365,8 @@ describe('SnapshotService', () => {
 
         const error = new Error('Bulk create failed');
 
-        const mockWorkoutDays = [
-          { id: 1, routineId: 10, dayNumber: 1, dayName: 'Push Day', notes: null },
-        ];
-        const mockWorkoutDaySets = [
-          { id: 1, workoutDayId: 1, muscleGroupId: 1, numberOfSets: 4, notes: null },
-        ];
+        const mockWorkoutDays = [{ id: 1, routineId: 10, dayNumber: 1, dayName: 'Push Day', notes: null }];
+        const mockWorkoutDaySets = [{ id: 1, workoutDayId: 1, muscleGroupId: 1, numberOfSets: 4, notes: null }];
         const mockSnapshotDays = [
           { id: 10, snapshotId: 1, originalWorkoutDayId: 1, dayNumber: 1, dayName: 'Push Day' },
         ];
@@ -407,9 +392,7 @@ describe('SnapshotService', () => {
 
         jest.spyOn(SnapshotService, 'calculateWeekStartDate').mockReturnValue(weekStartDate);
 
-        const mockWorkoutDays = [
-          { id: 1, routineId: 10, dayNumber: 1, dayName: 'Push Day', notes: null },
-        ];
+        const mockWorkoutDays = [{ id: 1, routineId: 10, dayNumber: 1, dayName: 'Push Day', notes: null }];
 
         const mockSnapshot = {
           id: 1,
@@ -444,9 +427,7 @@ describe('SnapshotService', () => {
 
         jest.spyOn(SnapshotService, 'calculateWeekStartDate').mockReturnValue(weekStartDate);
 
-        const mockWorkoutDays = [
-          { id: 1, routineId: 10, dayNumber: 1, dayName: 'Push Day', notes: null },
-        ];
+        const mockWorkoutDays = [{ id: 1, routineId: 10, dayNumber: 1, dayName: 'Push Day', notes: null }];
 
         const mockWorkoutDaySets = [
           { id: 1, workoutDayId: 1, muscleGroupId: 1, numberOfSets: 4, notes: null },

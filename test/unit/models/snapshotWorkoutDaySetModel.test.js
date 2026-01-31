@@ -36,10 +36,13 @@ describe('SnapshotWorkoutDaySetModel', () => {
         const result = await SnapshotWorkoutDaySetModel.create(data);
 
         expect(db.query).toHaveBeenCalledTimes(1);
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('INSERT INTO snapshot_workout_day_sets'),
-          [5, 10, 1, 4, 'Test notes']
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO snapshot_workout_day_sets'), [
+          5,
+          10,
+          1,
+          4,
+          'Test notes',
+        ]);
         expect(result).toEqual({
           id: 1,
           snapshotWorkoutDayId: 5,

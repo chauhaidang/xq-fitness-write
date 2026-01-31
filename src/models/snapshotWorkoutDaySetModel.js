@@ -52,9 +52,7 @@ class SnapshotWorkoutDaySetModel {
 
     sets.forEach((set, index) => {
       const offset = index * 5;
-      placeholders.push(
-        `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`
-      );
+      placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`);
       values.push(
         set.snapshotWorkoutDayId,
         set.originalWorkoutDaySetId,

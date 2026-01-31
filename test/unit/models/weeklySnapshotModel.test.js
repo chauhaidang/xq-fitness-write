@@ -31,10 +31,10 @@ describe('WeeklySnapshotModel', () => {
         const result = await WeeklySnapshotModel.create(data);
 
         expect(db.query).toHaveBeenCalledTimes(1);
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('INSERT INTO weekly_snapshots'),
-          [10, '2024-12-02']
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO weekly_snapshots'), [
+          10,
+          '2024-12-02',
+        ]);
         expect(result).toEqual({
           id: 1,
           routineId: 10,
@@ -111,10 +111,10 @@ describe('WeeklySnapshotModel', () => {
         const result = await WeeklySnapshotModel.findByRoutineAndWeek(10, '2024-12-02');
 
         expect(db.query).toHaveBeenCalledTimes(1);
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('SELECT * FROM weekly_snapshots'),
-          [10, '2024-12-02']
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('SELECT * FROM weekly_snapshots'), [
+          10,
+          '2024-12-02',
+        ]);
         expect(result).toEqual({
           id: 1,
           routineId: 10,
@@ -163,10 +163,10 @@ describe('WeeklySnapshotModel', () => {
         const result = await WeeklySnapshotModel.deleteByRoutineAndWeek(10, '2024-12-02');
 
         expect(db.query).toHaveBeenCalledTimes(1);
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('DELETE FROM weekly_snapshots'),
-          [10, '2024-12-02']
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('DELETE FROM weekly_snapshots'), [
+          10,
+          '2024-12-02',
+        ]);
         expect(result).toBe(1);
       });
 

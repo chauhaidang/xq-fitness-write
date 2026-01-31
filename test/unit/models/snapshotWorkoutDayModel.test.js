@@ -36,10 +36,13 @@ describe('SnapshotWorkoutDayModel', () => {
         const result = await SnapshotWorkoutDayModel.create(data);
 
         expect(db.query).toHaveBeenCalledTimes(1);
-        expect(db.query).toHaveBeenCalledWith(
-          expect.stringContaining('INSERT INTO snapshot_workout_days'),
-          [5, 10, 1, 'Push Day', 'Test notes']
-        );
+        expect(db.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO snapshot_workout_days'), [
+          5,
+          10,
+          1,
+          'Push Day',
+          'Test notes',
+        ]);
         expect(result).toEqual({
           id: 1,
           snapshotId: 5,
@@ -80,7 +83,17 @@ describe('SnapshotWorkoutDayModel', () => {
       it('should work with transaction client', async () => {
         const mockClient = {
           query: jest.fn().mockResolvedValue({
-            rows: [{ id: 1, snapshot_id: 5, original_workout_day_id: 10, day_number: 1, day_name: 'Push Day', notes: null, created_at: new Date() }],
+            rows: [
+              {
+                id: 1,
+                snapshot_id: 5,
+                original_workout_day_id: 10,
+                day_number: 1,
+                day_name: 'Push Day',
+                notes: null,
+                created_at: new Date(),
+              },
+            ],
           }),
         };
 
@@ -180,7 +193,17 @@ describe('SnapshotWorkoutDayModel', () => {
       it('should work with transaction client', async () => {
         const mockClient = {
           query: jest.fn().mockResolvedValue({
-            rows: [{ id: 1, snapshot_id: 5, original_workout_day_id: 10, day_number: 1, day_name: 'Push Day', notes: null, created_at: new Date() }],
+            rows: [
+              {
+                id: 1,
+                snapshot_id: 5,
+                original_workout_day_id: 10,
+                day_number: 1,
+                day_name: 'Push Day',
+                notes: null,
+                created_at: new Date(),
+              },
+            ],
           }),
         };
 

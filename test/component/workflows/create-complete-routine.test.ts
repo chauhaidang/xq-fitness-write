@@ -13,9 +13,7 @@ import { ApiClient } from '../helpers/api-client';
 import { CleanupHelper } from '../helpers/cleanup';
 import { logger } from '@chauhaidang/xq-js-common-kit';
 
-const apiClient = new ApiClient(
-  process.env.API_BASE_URL || 'http://localhost:8080/xq-fitness-write-service/api/v1',
-);
+const apiClient = new ApiClient(process.env.API_BASE_URL || 'http://localhost:8080/xq-fitness-write-service/api/v1');
 
 describe('Component Test: Create Complete Routine', () => {
   let cleanup: CleanupHelper;

@@ -10,6 +10,7 @@ export class CleanupHelper {
   private createdRoutines: number[] = [];
   private createdWorkoutDays: number[] = [];
   private createdWorkoutDaySets: number[] = [];
+  private createdExercises: number[] = [];
 
   constructor(apiClient: ApiClient) {
     this.apiClient = apiClient;
@@ -37,11 +38,27 @@ export class CleanupHelper {
   }
 
   /**
+   * Track created exercise for cleanup
+   */
+  trackExercise(id: number): void {
+    this.createdExercises.push(id);
+  }
+
+  /**
    * Clean up all tracked resources
-   * Deletes in reverse order: sets -> days -> routines
+   * Deletes in reverse order: exercises -> sets -> days -> routines
    */
   async cleanupAll(): Promise<void> {
-    // Delete workout day sets first
+    // Delete exercises first
+    for (const exerciseId of this.createdExercises) {
+      try {
+        await this.apiClient.deleteExercise(exerciseId);
+      } catch (error) {
+        console.warn(`Failed to delete exercise ${exerciseId}:`, error);
+      }
+    }
+
+    // Delete workout day sets
     for (const setId of this.createdWorkoutDaySets) {
       try {
         await this.apiClient.deleteWorkoutDaySets(setId);
@@ -69,6 +86,7 @@ export class CleanupHelper {
     }
 
     // Clear tracking arrays
+    this.createdExercises = [];
     this.createdWorkoutDaySets = [];
     this.createdWorkoutDays = [];
     this.createdRoutines = [];
@@ -78,6 +96,7 @@ export class CleanupHelper {
    * Reset tracking without deleting
    */
   reset(): void {
+    this.createdExercises = [];
     this.createdWorkoutDaySets = [];
     this.createdWorkoutDays = [];
     this.createdRoutines = [];

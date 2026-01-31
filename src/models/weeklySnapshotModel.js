@@ -6,7 +6,7 @@ class WeeklySnapshotModel {
    */
   static transformRow(row) {
     if (!row) return null;
-    
+
     // Format week_start_date as YYYY-MM-DD string (date only, no time/timezone)
     // PostgreSQL DATE type stores just the date (no timezone), and pg converts it to Date at midnight local time
     // We need to extract using local date methods (not UTC) to get the exact date that was stored
@@ -22,7 +22,7 @@ class WeeklySnapshotModel {
       // If it's already a string, extract just the date part (YYYY-MM-DD)
       weekStartDate = weekStartDate.substring(0, 10);
     }
-    
+
     return {
       id: row.id,
       routineId: row.routine_id,

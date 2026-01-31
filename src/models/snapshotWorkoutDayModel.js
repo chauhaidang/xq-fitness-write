@@ -27,13 +27,7 @@ class SnapshotWorkoutDayModel {
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
-    const values = [
-      data.snapshotId,
-      data.originalWorkoutDayId,
-      data.dayNumber,
-      data.dayName,
-      data.notes || null,
-    ];
+    const values = [data.snapshotId, data.originalWorkoutDayId, data.dayNumber, data.dayName, data.notes || null];
     const result = await queryFn(query, values);
     return this.transformRow(result.rows[0]);
   }
@@ -52,16 +46,8 @@ class SnapshotWorkoutDayModel {
 
     days.forEach((day, index) => {
       const offset = index * 5;
-      placeholders.push(
-        `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`
-      );
-      values.push(
-        day.snapshotId,
-        day.originalWorkoutDayId,
-        day.dayNumber,
-        day.dayName,
-        day.notes || null
-      );
+      placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`);
+      values.push(day.snapshotId, day.originalWorkoutDayId, day.dayNumber, day.dayName, day.notes || null);
     });
 
     const query = `

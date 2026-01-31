@@ -21,6 +21,16 @@ export interface WorkoutDaySetData {
   numberOfSets: number;
 }
 
+export interface ExerciseData {
+  workoutDayId: number;
+  muscleGroupId: number;
+  exerciseName: string;
+  totalReps: number;
+  weight: number;
+  totalSets: number;
+  notes?: string;
+}
+
 export const testData = {
   /**
    * Generate unique routine data
@@ -47,6 +57,27 @@ export const testData = {
     workoutDayId,
     muscleGroupId,
     numberOfSets,
+  }),
+
+  /**
+   * Generate exercise data
+   */
+  generateExercise: (
+    workoutDayId: number,
+    muscleGroupId: number,
+    exerciseName?: string,
+    totalReps: number = 30,
+    weight: number = 135,
+    totalSets: number = 3,
+    notes?: string
+  ): ExerciseData => ({
+    workoutDayId,
+    muscleGroupId,
+    exerciseName: exerciseName || `Exercise-${Date.now()}`,
+    totalReps,
+    weight,
+    totalSets,
+    notes,
   }),
 
   /**

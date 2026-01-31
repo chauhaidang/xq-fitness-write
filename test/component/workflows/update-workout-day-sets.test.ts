@@ -16,9 +16,7 @@ import { ApiClient } from '../helpers/api-client';
 import { CleanupHelper } from '../helpers/cleanup';
 import { logger } from '@chauhaidang/xq-js-common-kit';
 
-const apiClient = new ApiClient(
-  process.env.API_BASE_URL || 'http://localhost:8080/xq-fitness-write-service/api/v1',
-);
+const apiClient = new ApiClient(process.env.API_BASE_URL || 'http://localhost:8080/xq-fitness-write-service/api/v1');
 
 describe('Component Test: Update Workout Day Sets', () => {
   let cleanup: CleanupHelper;
@@ -36,9 +34,7 @@ describe('Component Test: Update Workout Day Sets', () => {
     const routine = await apiClient.createRoutine(testData.generateRoutine('Update Test Routine'));
     cleanup.trackRoutine(routine.id);
 
-    const workoutDay = await apiClient.createWorkoutDay(
-      testData.generateWorkoutDay(routine.id, 1, 'Test Day')
-    );
+    const workoutDay = await apiClient.createWorkoutDay(testData.generateWorkoutDay(routine.id, 1, 'Test Day'));
     cleanup.trackWorkoutDay(workoutDay.id);
 
     const initialSets = await apiClient.createWorkoutDaySets(
@@ -68,9 +64,7 @@ describe('Component Test: Update Workout Day Sets', () => {
     const routine = await apiClient.createRoutine(testData.generateRoutine('Query Param Test'));
     cleanup.trackRoutine(routine.id);
 
-    const workoutDay = await apiClient.createWorkoutDay(
-      testData.generateWorkoutDay(routine.id, 1, 'Query Test Day')
-    );
+    const workoutDay = await apiClient.createWorkoutDay(testData.generateWorkoutDay(routine.id, 1, 'Query Test Day'));
     cleanup.trackWorkoutDay(workoutDay.id);
 
     const initialSets = await apiClient.createWorkoutDaySets(
@@ -79,14 +73,10 @@ describe('Component Test: Update Workout Day Sets', () => {
     cleanup.trackWorkoutDaySets(initialSets.id);
 
     // Test: Update using query parameters (without knowing setId)
-    const updatedSets = await apiClient.updateWorkoutDaySetsByQuery(
-      workoutDay.id,
-      testData.muscleGroups.SHOULDERS,
-      {
-        numberOfSets: 6,
-        notes: 'Updated via query params',
-      }
-    );
+    const updatedSets = await apiClient.updateWorkoutDaySetsByQuery(workoutDay.id, testData.muscleGroups.SHOULDERS, {
+      numberOfSets: 6,
+      notes: 'Updated via query params',
+    });
 
     // Verify
     expect(updatedSets).toBeDefined();
@@ -115,13 +105,9 @@ describe('Component Test: Update Workout Day Sets', () => {
     cleanup.trackWorkoutDaySets(initialSets.id);
 
     // Test: Update only numberOfSets
-    const updatedSets = await apiClient.updateWorkoutDaySetsByQuery(
-      workoutDay.id,
-      testData.muscleGroups.BACK,
-      {
-        numberOfSets: 5,
-      }
-    );
+    const updatedSets = await apiClient.updateWorkoutDaySetsByQuery(workoutDay.id, testData.muscleGroups.BACK, {
+      numberOfSets: 5,
+    });
 
     // Verify
     expect(updatedSets.numberOfSets).toBe(5);
@@ -135,9 +121,7 @@ describe('Component Test: Update Workout Day Sets', () => {
     const routine = await apiClient.createRoutine(testData.generateRoutine('Not Found Test'));
     cleanup.trackRoutine(routine.id);
 
-    const workoutDay = await apiClient.createWorkoutDay(
-      testData.generateWorkoutDay(routine.id, 1, 'Not Found Day')
-    );
+    const workoutDay = await apiClient.createWorkoutDay(testData.generateWorkoutDay(routine.id, 1, 'Not Found Day'));
     cleanup.trackWorkoutDay(workoutDay.id);
 
     // Test: Try to update non-existent workout day set
@@ -172,18 +156,15 @@ describe('Component Test: Update Workout Day Sets', () => {
     cleanup.trackWorkoutDaySets(initialSets.id);
 
     // Test: Multiple updates
-    const firstUpdate = await apiClient.updateWorkoutDaySetsByQuery(
-      workoutDay.id,
-      testData.muscleGroups.LEGS,
-      { numberOfSets: 4 }
-    );
+    const firstUpdate = await apiClient.updateWorkoutDaySetsByQuery(workoutDay.id, testData.muscleGroups.LEGS, {
+      numberOfSets: 4,
+    });
     expect(firstUpdate.numberOfSets).toBe(4);
 
-    const secondUpdate = await apiClient.updateWorkoutDaySetsByQuery(
-      workoutDay.id,
-      testData.muscleGroups.LEGS,
-      { numberOfSets: 5, notes: 'Second update' }
-    );
+    const secondUpdate = await apiClient.updateWorkoutDaySetsByQuery(workoutDay.id, testData.muscleGroups.LEGS, {
+      numberOfSets: 5,
+      notes: 'Second update',
+    });
     expect(secondUpdate.numberOfSets).toBe(5);
     expect(secondUpdate.notes).toBe('Second update');
     expect(secondUpdate.id).toBe(initialSets.id); // Same setId
@@ -212,14 +193,10 @@ describe('Component Test: Update Workout Day Sets', () => {
       notes: 'Via setId',
     });
 
-    const updateViaQuery = await apiClient.updateWorkoutDaySetsByQuery(
-      workoutDay.id,
-      testData.muscleGroups.CORE,
-      {
-        numberOfSets: 4,
-        notes: 'Via query',
-      }
-    );
+    const updateViaQuery = await apiClient.updateWorkoutDaySetsByQuery(workoutDay.id, testData.muscleGroups.CORE, {
+      numberOfSets: 4,
+      notes: 'Via query',
+    });
 
     // Both should update the same record
     expect(updateViaSetId.id).toBe(updateViaQuery.id);
@@ -229,4 +206,3 @@ describe('Component Test: Update Workout Day Sets', () => {
     logger.info('✅ Backward compatibility maintained');
   });
 });
-

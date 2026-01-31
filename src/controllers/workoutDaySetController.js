@@ -59,7 +59,7 @@ class WorkoutDaySetController {
     try {
       const { setId } = req.params;
       const { workoutDayId, muscleGroupId } = req.query;
-      
+
       let actualSetId = setId;
 
       // If query parameters are provided, use them to find the setId

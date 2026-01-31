@@ -8,10 +8,12 @@ import {
   RoutinesApi,
   WorkoutDaysApi,
   WorkoutDaySetsApi,
+  ExercisesApi,
   SnapshotsApi,
   RoutineResponse,
   WorkoutDayResponse,
   WorkoutDaySetResponse,
+  ExerciseResponse,
   WeeklySnapshotResponse,
 } from 'xq-fitness-write-client';
 import { logger } from '@chauhaidang/xq-js-common-kit';
@@ -20,6 +22,7 @@ export class ApiClient {
   private routinesApi: RoutinesApi;
   private workoutDaysApi: WorkoutDaysApi;
   private workoutDaySetsApi: WorkoutDaySetsApi;
+  private exercisesApi: ExercisesApi;
   private snapshotsApi: SnapshotsApi;
 
   constructor(baseUrl: string) {
@@ -30,6 +33,7 @@ export class ApiClient {
     this.routinesApi = new RoutinesApi(config);
     this.workoutDaysApi = new WorkoutDaysApi(config);
     this.workoutDaySetsApi = new WorkoutDaySetsApi(config);
+    this.exercisesApi = new ExercisesApi(config);
     this.snapshotsApi = new SnapshotsApi(config);
   }
 
@@ -40,7 +44,7 @@ export class ApiClient {
   private extractErrorDetails(error: any): { status?: number; message: string; body?: any } {
     let status: number | undefined;
     let body: any;
-    
+
     // Handle AxiosError from generated axios client
     // Axios errors have error.response.status and error.response.data (already parsed JSON)
     if (error.response && typeof error.response.status === 'number') {
@@ -51,9 +55,9 @@ export class ApiClient {
       status = error.status || error.statusCode;
       body = error.body || error.data;
     }
-    
+
     const message = error.message || 'Unknown error';
-    
+
     return { status, message, body };
   }
 
@@ -62,23 +66,23 @@ export class ApiClient {
    */
   private handleError(operation: string, error: any): never {
     const { status, message, body } = this.extractErrorDetails(error);
-    
+
     logger.error(`❌ Failed to ${operation}`);
     logger.error(`Error status: ${status || 'unknown'}`);
     logger.error(`Error message: ${message}`);
     if (body) {
       logger.error(`Error body: ${JSON.stringify(body, null, 2)}`);
     }
-    
+
     // Create a more informative error message
     const errorMessage = body?.message || body?.code || message;
     const enhancedError = new Error(`Failed to ${operation}: ${errorMessage}${status ? ` (HTTP ${status})` : ''}`);
-    
+
     // Preserve original error details
     (enhancedError as any).status = status;
     (enhancedError as any).body = body;
     (enhancedError as any).originalError = error;
-    
+
     throw enhancedError;
   }
 
@@ -170,10 +174,15 @@ export class ApiClient {
   }): Promise<WorkoutDaySetResponse> {
     try {
       const result = await this.workoutDaySetsApi.createWorkoutDaySet(data);
-      logger.info(`✅ Created workout day sets: ${result.data.id} (muscle group ${data.muscleGroupId}, ${data.numberOfSets} sets)`);
+      logger.info(
+        `✅ Created workout day sets: ${result.data.id} (muscle group ${data.muscleGroupId}, ${data.numberOfSets} sets)`
+      );
       return result.data;
     } catch (error) {
-      return await this.handleError(`create workout day sets for workout day ${data.workoutDayId} (muscle group ${data.muscleGroupId})`, error);
+      return await this.handleError(
+        `create workout day sets for workout day ${data.workoutDayId} (muscle group ${data.muscleGroupId})`,
+        error
+      );
     }
   }
 
@@ -186,7 +195,9 @@ export class ApiClient {
   ): Promise<WorkoutDaySetResponse> {
     try {
       const result = await this.workoutDaySetsApi.updateWorkoutDaySet(id, data);
-      logger.info(`✅ Updated workout day sets: ${result.data.id} - workoutDayId: ${result.data.workoutDayId}, muscleGroupId: ${result.data.muscleGroupId}`);
+      logger.info(
+        `✅ Updated workout day sets: ${result.data.id} - workoutDayId: ${result.data.workoutDayId}, muscleGroupId: ${result.data.muscleGroupId}`
+      );
       return result.data;
     } catch (error) {
       return await this.handleError(`update workout day sets ${id}`, error);
@@ -205,10 +216,15 @@ export class ApiClient {
     try {
       // Use setId=0 (or any value) since query params take precedence
       const result = await this.workoutDaySetsApi.updateWorkoutDaySet(0, data, workoutDayId, muscleGroupId);
-      logger.info(`✅ Updated workout day sets via query params (workoutDayId: ${workoutDayId}, muscleGroupId: ${muscleGroupId})`);
+      logger.info(
+        `✅ Updated workout day sets via query params (workoutDayId: ${workoutDayId}, muscleGroupId: ${muscleGroupId})`
+      );
       return result.data;
     } catch (error) {
-      return await this.handleError(`update workout day sets by query (workoutDayId: ${workoutDayId}, muscleGroupId: ${muscleGroupId})`, error);
+      return await this.handleError(
+        `update workout day sets by query (workoutDayId: ${workoutDayId}, muscleGroupId: ${muscleGroupId})`,
+        error
+      );
     }
   }
 
@@ -233,6 +249,69 @@ export class ApiClient {
       return result.data;
     } catch (error) {
       return this.handleError(`create snapshot for routine ${routineId}`, error);
+    }
+  }
+
+  /**
+   * Create an exercise (generated client from API contract)
+   */
+  async createExercise(data: {
+    workoutDayId: number;
+    muscleGroupId: number;
+    exerciseName: string;
+    totalReps: number;
+    weight: number;
+    totalSets: number;
+    notes?: string;
+  }): Promise<ExerciseResponse> {
+    try {
+      const result = await this.exercisesApi.createExercise(data);
+      logger.info(`✅ Created exercise: ${result.data.id} - ${result.data.exerciseName}`);
+      return result.data;
+    } catch (error) {
+      return await this.handleError(
+        `create exercise "${data.exerciseName}" for workout day ${data.workoutDayId}`,
+        error
+      );
+    }
+  }
+
+  /**
+   * Get exercise by ID (generated client)
+   */
+  async getExercise(id: number): Promise<ExerciseResponse> {
+    try {
+      const result = await this.exercisesApi.getExercise(id);
+      return result.data;
+    } catch (error) {
+      return await this.handleError(`get exercise ${id}`, error);
+    }
+  }
+
+  /**
+   * Update exercise (generated client)
+   */
+  async updateExercise(
+    id: number,
+    data: Partial<{ exerciseName: string; totalReps: number; weight: number; totalSets: number; notes: string }>
+  ): Promise<ExerciseResponse> {
+    try {
+      const result = await this.exercisesApi.updateExercise(id, data);
+      logger.info(`✅ Updated exercise: ${result.data.id}`);
+      return result.data;
+    } catch (error) {
+      return await this.handleError(`update exercise ${id}`, error);
+    }
+  }
+
+  /**
+   * Delete exercise (generated client)
+   */
+  async deleteExercise(id: number): Promise<void> {
+    try {
+      await this.exercisesApi.deleteExercise(id);
+    } catch (error) {
+      return await this.handleError(`delete exercise ${id}`, error);
     }
   }
 }

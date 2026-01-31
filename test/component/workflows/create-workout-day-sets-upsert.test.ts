@@ -17,9 +17,7 @@ import { ApiClient } from '../helpers/api-client';
 import { CleanupHelper } from '../helpers/cleanup';
 import { logger } from '@chauhaidang/xq-js-common-kit';
 
-const apiClient = new ApiClient(
-  process.env.API_BASE_URL || 'http://localhost:8080/xq-fitness-write-service/api/v1',
-);
+const apiClient = new ApiClient(process.env.API_BASE_URL || 'http://localhost:8080/xq-fitness-write-service/api/v1');
 
 describe('Component Test: Create Workout Day Sets - Upsert Behavior', () => {
   let cleanup: CleanupHelper;
@@ -37,9 +35,7 @@ describe('Component Test: Create Workout Day Sets - Upsert Behavior', () => {
     const routine = await apiClient.createRoutine(testData.generateRoutine('Upsert Test Routine'));
     cleanup.trackRoutine(routine.id);
 
-    const workoutDay = await apiClient.createWorkoutDay(
-      testData.generateWorkoutDay(routine.id, 1, 'Upsert Test Day')
-    );
+    const workoutDay = await apiClient.createWorkoutDay(testData.generateWorkoutDay(routine.id, 1, 'Upsert Test Day'));
     cleanup.trackWorkoutDay(workoutDay.id);
 
     // Test: Create new workout day set
@@ -208,4 +204,3 @@ describe('Component Test: Create Workout Day Sets - Upsert Behavior', () => {
     logger.info('✅ Successfully created and updated different muscle group sets');
   });
 });
-

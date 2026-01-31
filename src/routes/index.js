@@ -5,6 +5,7 @@ const schemas = require('../validators/schemas');
 const RoutineController = require('../controllers/routineController');
 const WorkoutDayController = require('../controllers/workoutDayController');
 const WorkoutDaySetController = require('../controllers/workoutDaySetController');
+const ExerciseController = require('../controllers/exerciseController');
 const SnapshotController = require('../controllers/snapshotController');
 
 // Routine routes
@@ -35,6 +36,12 @@ router.put(
 );
 
 router.delete('/workout-day-sets/:setId', WorkoutDaySetController.deleteWorkoutDaySet);
+
+// Exercise routes
+router.post('/exercises', validate(schemas.createExerciseSchema), ExerciseController.createExercise);
+router.get('/exercises/:exerciseId', ExerciseController.getExercise);
+router.put('/exercises/:exerciseId', validate(schemas.updateExerciseSchema), ExerciseController.updateExercise);
+router.delete('/exercises/:exerciseId', ExerciseController.deleteExercise);
 
 // Snapshot routes
 router.post('/routines/:routineId/snapshots', SnapshotController.createSnapshot);
