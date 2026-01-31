@@ -39,6 +39,7 @@ describe('Component Test: Weekly Snapshot Creation', () => {
       'weekly_snapshots',
       'snapshot_workout_days',
       'snapshot_workout_day_sets',
+      'snapshot_exercises',
     ]);
 
     if (!healthCheck.healthy) {
@@ -235,5 +236,122 @@ describe('Component Test: Weekly Snapshot Creation', () => {
     }
 
     logger.info('✅ Invalid routineId handled correctly');
+  });
+
+  test('should create snapshot when routine has workout day sets and exercise data', async () => {
+    // Create routine with workout day, sets, and exercises
+    const routine = await apiClient.createRoutine(testData.generateRoutine('Snapshot With Exercise'));
+    cleanup.trackRoutine(routine.id);
+
+    const workoutDay = await apiClient.createWorkoutDay(
+      testData.generateWorkoutDay(routine.id, 1, 'Push Day')
+    );
+    cleanup.trackWorkoutDay(workoutDay.id);
+
+    const chestSets = await apiClient.createWorkoutDaySets(
+      testData.generateSets(workoutDay.id, testData.muscleGroups.CHEST, 4)
+    );
+    cleanup.trackWorkoutDaySets(chestSets.id);
+
+    const exercise1 = await apiClient.createExercise(
+      testData.generateExercise(
+        workoutDay.id,
+        testData.muscleGroups.CHEST,
+        'Bench Press',
+        30,
+        135,
+        3
+      )
+    );
+    cleanup.trackExercise(exercise1.id);
+
+    const exercise2 = await apiClient.createExercise(
+      testData.generateExercise(
+        workoutDay.id,
+        testData.muscleGroups.SHOULDERS,
+        'Overhead Press',
+        24,
+        95,
+        3
+      )
+    );
+    cleanup.trackExercise(exercise2.id);
+
+    // Create snapshot (should succeed when exercise data is present)
+    const snapshot = await apiClient.createSnapshot(routine.id);
+
+    // Verify snapshot response
+    expect(snapshot).toBeDefined();
+    expect(snapshot.id).toBeDefined();
+    expect(snapshot.routineId).toBe(routine.id);
+    expect(typeof snapshot.weekStartDate).toBe('string');
+    expect(snapshot.weekStartDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(snapshot.createdAt).toBeDefined();
+
+    // Verify snapshot record in database
+    const snapshotRecord = await query('SELECT * FROM weekly_snapshots WHERE id = $1', [
+      snapshot.id,
+    ]);
+    expect(snapshotRecord.rows.length).toBe(1);
+    expect(snapshotRecord.rows[0].routine_id).toBe(routine.id);
+
+    // Verify snapshot workout days exist
+    const snapshotDays = await query(
+      'SELECT * FROM snapshot_workout_days WHERE snapshot_id = $1',
+      [snapshot.id]
+    );
+    expect(snapshotDays.rows.length).toBe(1);
+    expect(snapshotDays.rows[0].original_workout_day_id).toBe(workoutDay.id);
+
+    // Verify snapshot sets exist (from workout_day_sets, not exercises)
+    const snapshotSets = await query(
+      `SELECT swds.* FROM snapshot_workout_day_sets swds
+       JOIN snapshot_workout_days swd ON swds.snapshot_workout_day_id = swd.id
+       WHERE swd.snapshot_id = $1`,
+      [snapshot.id]
+    );
+    expect(snapshotSets.rows.length).toBeGreaterThan(0);
+
+    // Verify snapshot_exercises table is populated after API success
+    const snapshotExercises = await query(
+      `SELECT se.* FROM snapshot_exercises se
+       JOIN snapshot_workout_days swd ON se.snapshot_workout_day_id = swd.id
+       WHERE swd.snapshot_id = $1
+       ORDER BY se.exercise_name`,
+      [snapshot.id]
+    );
+    expect(snapshotExercises.rows.length).toBe(2);
+    const exerciseNames = snapshotExercises.rows.map(
+      (r: { exercise_name: string }) => r.exercise_name
+    );
+    expect(exerciseNames).toContain('Bench Press');
+    expect(exerciseNames).toContain('Overhead Press');
+    const benchRow = snapshotExercises.rows.find(
+      (r: { exercise_name: string }) => r.exercise_name === 'Bench Press'
+    );
+    const overheadRow = snapshotExercises.rows.find(
+      (r: { exercise_name: string }) => r.exercise_name === 'Overhead Press'
+    );
+    expect(benchRow).toBeDefined();
+    expect(benchRow?.original_exercise_id).toBe(exercise1.id);
+    expect(Number(benchRow?.total_reps)).toBe(30);
+    expect(Number(benchRow?.weight)).toBe(135);
+    expect(Number(benchRow?.total_sets)).toBe(3);
+    expect(benchRow?.muscle_group_id).toBe(testData.muscleGroups.CHEST);
+    expect(overheadRow).toBeDefined();
+    expect(overheadRow?.original_exercise_id).toBe(exercise2.id);
+    expect(Number(overheadRow?.total_reps)).toBe(24);
+    expect(Number(overheadRow?.weight)).toBe(95);
+    expect(Number(overheadRow?.total_sets)).toBe(3);
+    expect(overheadRow?.muscle_group_id).toBe(testData.muscleGroups.SHOULDERS);
+
+    // Exercises remain in exercises table
+    const exercisesAfter = await query(
+      'SELECT id, exercise_name FROM exercises WHERE workout_day_id = $1',
+      [workoutDay.id]
+    );
+    expect(exercisesAfter.rows.length).toBe(2);
+
+    logger.info('✅ Snapshot created successfully when routine has exercise data');
   });
 });

@@ -2,8 +2,10 @@ const db = require('../config/database');
 const WeeklySnapshotModel = require('../models/weeklySnapshotModel');
 const SnapshotWorkoutDayModel = require('../models/snapshotWorkoutDayModel');
 const SnapshotWorkoutDaySetModel = require('../models/snapshotWorkoutDaySetModel');
+const SnapshotExerciseModel = require('../models/snapshotExerciseModel');
 const WorkoutDayModel = require('../models/workoutDayModel');
 const WorkoutDaySetModel = require('../models/workoutDaySetModel');
+const ExerciseModel = require('../models/exerciseModel');
 const RoutineModel = require('../models/routineModel');
 
 class SnapshotService {
@@ -116,8 +118,26 @@ class SnapshotService {
         await SnapshotWorkoutDaySetModel.bulkCreate(snapshotSetsData, client);
       }
 
-      // Reset all sets to zero for the routine
-      // await WorkoutDaySetModel.resetSetsByRoutineId(routineId, client);
+      // Fetch exercises for all workout days and create snapshot_exercises
+      const workoutDayIds = workoutDays.map((day) => day.id);
+      const exercises = await ExerciseModel.findByWorkoutDayIds(workoutDayIds, client);
+      if (exercises.length > 0) {
+        const snapshotExercisesData = exercises
+          .map((ex) => ({
+            snapshotWorkoutDayId: dayIdMap.get(ex.workoutDayId),
+            originalExerciseId: ex.id,
+            exerciseName: ex.exerciseName,
+            muscleGroupId: ex.muscleGroupId,
+            totalReps: ex.totalReps,
+            weight: ex.weight,
+            totalSets: ex.totalSets,
+            notes: ex.notes,
+          }))
+          .filter((ex) => ex.snapshotWorkoutDayId != null);
+        if (snapshotExercisesData.length > 0) {
+          await SnapshotExerciseModel.bulkCreate(snapshotExercisesData, client);
+        }
+      }
 
       // Commit transaction
       await client.query('COMMIT');

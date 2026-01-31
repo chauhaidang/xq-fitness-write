@@ -3,8 +3,10 @@ const db = require('../../../src/config/database');
 const WeeklySnapshotModel = require('../../../src/models/weeklySnapshotModel');
 const SnapshotWorkoutDayModel = require('../../../src/models/snapshotWorkoutDayModel');
 const SnapshotWorkoutDaySetModel = require('../../../src/models/snapshotWorkoutDaySetModel');
+const SnapshotExerciseModel = require('../../../src/models/snapshotExerciseModel');
 const WorkoutDayModel = require('../../../src/models/workoutDayModel');
 const WorkoutDaySetModel = require('../../../src/models/workoutDaySetModel');
+const ExerciseModel = require('../../../src/models/exerciseModel');
 const RoutineModel = require('../../../src/models/routineModel');
 
 // Mock all dependencies
@@ -12,8 +14,10 @@ jest.mock('../../../src/config/database');
 jest.mock('../../../src/models/weeklySnapshotModel');
 jest.mock('../../../src/models/snapshotWorkoutDayModel');
 jest.mock('../../../src/models/snapshotWorkoutDaySetModel');
+jest.mock('../../../src/models/snapshotExerciseModel');
 jest.mock('../../../src/models/workoutDayModel');
 jest.mock('../../../src/models/workoutDaySetModel');
+jest.mock('../../../src/models/exerciseModel');
 jest.mock('../../../src/models/routineModel');
 
 describe('SnapshotService', () => {
@@ -170,6 +174,7 @@ describe('SnapshotService', () => {
         RoutineModel.exists.mockResolvedValue(true);
         WorkoutDayModel.findByRoutineId.mockResolvedValue(mockWorkoutDays);
         WorkoutDaySetModel.findByRoutineId.mockResolvedValue(mockWorkoutDaySets);
+        ExerciseModel.findByWorkoutDayIds.mockResolvedValue([]);
         WeeklySnapshotModel.deleteByRoutineAndWeek.mockResolvedValue(null);
         WeeklySnapshotModel.create.mockResolvedValue(mockSnapshot);
         SnapshotWorkoutDayModel.bulkCreate.mockResolvedValue(mockSnapshotDays);
@@ -264,6 +269,7 @@ describe('SnapshotService', () => {
         RoutineModel.exists.mockResolvedValue(true);
         WorkoutDayModel.findByRoutineId.mockResolvedValue([]);
         WorkoutDaySetModel.findByRoutineId.mockResolvedValue([]);
+        ExerciseModel.findByWorkoutDayIds.mockResolvedValue([]);
         WeeklySnapshotModel.deleteByRoutineAndWeek.mockResolvedValue(null);
         WeeklySnapshotModel.create.mockResolvedValue(mockSnapshot);
         SnapshotWorkoutDayModel.bulkCreate.mockResolvedValue([]);
@@ -294,6 +300,7 @@ describe('SnapshotService', () => {
         RoutineModel.exists.mockResolvedValue(true);
         WorkoutDayModel.findByRoutineId.mockResolvedValue([]);
         WorkoutDaySetModel.findByRoutineId.mockResolvedValue([]);
+        ExerciseModel.findByWorkoutDayIds.mockResolvedValue([]);
         WeeklySnapshotModel.deleteByRoutineAndWeek.mockResolvedValue(1); // Returns deleted ID
         WeeklySnapshotModel.create.mockResolvedValue(mockSnapshot);
         SnapshotWorkoutDayModel.bulkCreate.mockResolvedValue([]);
@@ -329,6 +336,7 @@ describe('SnapshotService', () => {
         RoutineModel.exists.mockResolvedValue(true);
         WorkoutDayModel.findByRoutineId.mockResolvedValue([]);
         WorkoutDaySetModel.findByRoutineId.mockResolvedValue([]);
+        ExerciseModel.findByWorkoutDayIds.mockResolvedValue([]);
         WeeklySnapshotModel.deleteByRoutineAndWeek.mockResolvedValue(null);
         WeeklySnapshotModel.create.mockRejectedValue(error);
 
@@ -374,6 +382,7 @@ describe('SnapshotService', () => {
         RoutineModel.exists.mockResolvedValue(true);
         WorkoutDayModel.findByRoutineId.mockResolvedValue(mockWorkoutDays);
         WorkoutDaySetModel.findByRoutineId.mockResolvedValue(mockWorkoutDaySets);
+        ExerciseModel.findByWorkoutDayIds.mockResolvedValue([]);
         WeeklySnapshotModel.deleteByRoutineAndWeek.mockResolvedValue(null);
         WeeklySnapshotModel.create.mockResolvedValue({ id: 1, routineId: 10, weekStartDate });
         SnapshotWorkoutDayModel.bulkCreate.mockResolvedValue(mockSnapshotDays);
@@ -408,6 +417,7 @@ describe('SnapshotService', () => {
         RoutineModel.exists.mockResolvedValue(true);
         WorkoutDayModel.findByRoutineId.mockResolvedValue(mockWorkoutDays);
         WorkoutDaySetModel.findByRoutineId.mockResolvedValue([]); // No sets
+        ExerciseModel.findByWorkoutDayIds.mockResolvedValue([]);
         WeeklySnapshotModel.deleteByRoutineAndWeek.mockResolvedValue(null);
         WeeklySnapshotModel.create.mockResolvedValue(mockSnapshot);
         SnapshotWorkoutDayModel.bulkCreate.mockResolvedValue(mockSnapshotDays);
@@ -418,6 +428,87 @@ describe('SnapshotService', () => {
 
         // When there are no sets with numberOfSets > 0, bulkCreate should not be called
         expect(SnapshotWorkoutDaySetModel.bulkCreate).not.toHaveBeenCalled();
+        expect(result).toEqual(mockSnapshot);
+      });
+
+      it('should create snapshot_exercises when routine has exercises', async () => {
+        const routineId = 10;
+        const weekStartDate = '2024-12-02';
+
+        jest.spyOn(SnapshotService, 'calculateWeekStartDate').mockReturnValue(weekStartDate);
+
+        const mockWorkoutDays = [{ id: 1, routineId: 10, dayNumber: 1, dayName: 'Push Day', notes: null }];
+        const mockWorkoutDaySets = [{ id: 1, workoutDayId: 1, muscleGroupId: 1, numberOfSets: 4, notes: null }];
+        const mockSnapshot = {
+          id: 1,
+          routineId: 10,
+          weekStartDate: weekStartDate,
+          createdAt: new Date(),
+        };
+        const mockSnapshotDays = [
+          { id: 10, snapshotId: 1, originalWorkoutDayId: 1, dayNumber: 1, dayName: 'Push Day' },
+        ];
+        const mockExercises = [
+          {
+            id: 100,
+            workoutDayId: 1,
+            muscleGroupId: 1,
+            exerciseName: 'Bench Press',
+            totalReps: 30,
+            weight: 135,
+            totalSets: 3,
+            notes: null,
+          },
+          {
+            id: 101,
+            workoutDayId: 1,
+            muscleGroupId: 2,
+            exerciseName: 'Overhead Press',
+            totalReps: 24,
+            weight: 95,
+            totalSets: 3,
+            notes: null,
+          },
+        ];
+
+        RoutineModel.exists.mockResolvedValue(true);
+        WorkoutDayModel.findByRoutineId.mockResolvedValue(mockWorkoutDays);
+        WorkoutDaySetModel.findByRoutineId.mockResolvedValue(mockWorkoutDaySets);
+        ExerciseModel.findByWorkoutDayIds.mockResolvedValue(mockExercises);
+        WeeklySnapshotModel.deleteByRoutineAndWeek.mockResolvedValue(null);
+        WeeklySnapshotModel.create.mockResolvedValue(mockSnapshot);
+        SnapshotWorkoutDayModel.bulkCreate.mockResolvedValue(mockSnapshotDays);
+        SnapshotWorkoutDaySetModel.bulkCreate.mockResolvedValue([]);
+        SnapshotExerciseModel.bulkCreate.mockResolvedValue([]);
+
+        const result = await SnapshotService.createSnapshot(routineId);
+
+        expect(ExerciseModel.findByWorkoutDayIds).toHaveBeenCalledWith([1], mockClient);
+        expect(SnapshotExerciseModel.bulkCreate).toHaveBeenCalledWith(
+          [
+            {
+              snapshotWorkoutDayId: 10,
+              originalExerciseId: 100,
+              exerciseName: 'Bench Press',
+              muscleGroupId: 1,
+              totalReps: 30,
+              weight: 135,
+              totalSets: 3,
+              notes: null,
+            },
+            {
+              snapshotWorkoutDayId: 10,
+              originalExerciseId: 101,
+              exerciseName: 'Overhead Press',
+              muscleGroupId: 2,
+              totalReps: 24,
+              weight: 95,
+              totalSets: 3,
+              notes: null,
+            },
+          ],
+          mockClient
+        );
         expect(result).toEqual(mockSnapshot);
       });
 
@@ -449,6 +540,7 @@ describe('SnapshotService', () => {
         RoutineModel.exists.mockResolvedValue(true);
         WorkoutDayModel.findByRoutineId.mockResolvedValue(mockWorkoutDays);
         WorkoutDaySetModel.findByRoutineId.mockResolvedValue(mockWorkoutDaySets);
+        ExerciseModel.findByWorkoutDayIds.mockResolvedValue([]);
         WeeklySnapshotModel.deleteByRoutineAndWeek.mockResolvedValue(null);
         WeeklySnapshotModel.create.mockResolvedValue(mockSnapshot);
         SnapshotWorkoutDayModel.bulkCreate.mockResolvedValue(mockSnapshotDays);

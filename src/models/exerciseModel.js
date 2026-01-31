@@ -45,6 +45,21 @@ class ExerciseModel {
     return result.rows.length > 0 ? this.transformRow(result.rows[0]) : null;
   }
 
+  /**
+   * Find all exercises for the given workout day IDs (for snapshot creation).
+   * @param {number[]} workoutDayIds - Array of workout day IDs
+   * @param {Object} [client] - Optional database client (for transactions)
+   * @returns {Promise<Array>} Array of exercise objects (camelCase)
+   */
+  static async findByWorkoutDayIds(workoutDayIds, client = null) {
+    if (!workoutDayIds || workoutDayIds.length === 0) return [];
+    const query = 'SELECT * FROM exercises WHERE workout_day_id = ANY($1::int[]) ORDER BY id';
+    const result = client
+      ? await client.query(query, [workoutDayIds])
+      : await db.query(query, [workoutDayIds]);
+    return result.rows.map((row) => this.transformRow(row));
+  }
+
   static async update(id, data) {
     const updates = [];
     const values = [];
