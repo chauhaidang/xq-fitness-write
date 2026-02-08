@@ -10,24 +10,47 @@ Tests are managed from the root package.json with centralized dependencies and c
 
 ### Prerequisites
 
-- Node.js 18+
-- npm 8+
-- Write Service running on port 3000
+- **Node.js 18+**, **npm 8+**
+- **Docker** (for building the service image and running test-env)
+- **xq-infra** (xq-cli): `npm install -g @chauhaidang/xq-test-infra`
 
-### Setup
+### Recommended: Run with xq-infra (matches CI and project component-test rule)
+
+This is the standard workflow. Use the existing build script and **test-env** in this directory.
 
 ```bash
-# From write-service root directory:
+# From write-service root:
 
-# 1. Install dependencies (if not already done)
+# 1. Build the write-service container image
+./build-write-service.sh
+
+# 2. Generate API client and install dependencies
+npm run generate:client
 npm install
 
-# 2. Start Write Service (in separate terminal)
-npm start
+# 3. Start test environment (DB + write-service containers)
+xq-infra generate -f ./test-env
+xq-infra up
 
-# 3. Run component tests
-npm run test:component
+# 4. Run component tests
+npm run test:component:ci
+# or: npm run test:component
+
+# 5. When done, tear down
+xq-infra down
 ```
+
+Tests wait up to 30 seconds for the API health endpoint before running. Defaults use the **test-env gateway** entry point: `http://localhost:8080/xq-fitness-write-service/api/v1` and `http://localhost:8080/xq-fitness-write-service/health`. DB is configured via test-env (xq_user / xq_password, etc.).
+
+See also the project component-test rule: `.cursor/rules/component-test.mdc` (and `write-service/.cursor/rules/component-test.mdc`).
+
+### Alternative: Run service and DB manually
+
+If you prefer to run the service with `npm start` and your own PostgreSQL:
+
+- **PostgreSQL**: database `xq_fitness`, user `xq_user`, password `xq_password` (or set `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`).
+- **Write service**: `cp .env.example .env`, then `npm start` (port 3000).
+- **Tests**: set env and run, e.g. `API_BASE_URL=http://localhost:3000/api/v1 HEALTH_CHECK_URL=http://localhost:3000/health npm run test:component`.
 
 ---
 
@@ -77,14 +100,17 @@ write-service/                   # Root directory
 
 | Variable           | Default                        | Description                |
 | ------------------ | ------------------------------ | -------------------------- |
-| `API_BASE_URL`     | `http://localhost:3000/api/v1` | Base URL for API endpoints |
-| `HEALTH_CHECK_URL` | `http://localhost:3000/health` | Health check endpoint      |
+| `API_BASE_URL`     | `http://localhost:8080/xq-fitness-write-service/api/v1` | Base URL (test-env gateway) |
+| `HEALTH_CHECK_URL` | `http://localhost:8080/xq-fitness-write-service/health` | Health check (test-env gateway) |
 
 ### Example
 
 ```bash
-# Run tests against different environment
-API_BASE_URL=http://localhost:3000/api/v1 npm test
+# Run tests against test-env gateway (default)
+npm run test:component
+
+# Override for e.g. direct service (no gateway)
+API_BASE_URL=http://localhost:3000/api/v1 HEALTH_CHECK_URL=http://localhost:3000/health npm run test:component
 
 # Run tests via nginx gateway
 API_BASE_URL=http://localhost/xq-fitness-write-service/api/v1 \
@@ -242,7 +268,7 @@ Tests run automatically on:
 - Push to `main` or `develop` branches
 - Pull requests to `main` or `develop`
 
-See `.github/workflows/e2e-tests.yml` for workflow configuration.
+See `write-service/.github/workflows/ci.yml` for workflow configuration.
 
 ---
 

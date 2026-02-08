@@ -354,4 +354,103 @@ describe('Component Test: Weekly Snapshot Creation', () => {
 
     logger.info('✅ Snapshot created successfully when routine has exercise data');
   });
+
+  test('should snapshot one workout day with two exercises in the same muscle group', async () => {
+    const routine = await apiClient.createRoutine(testData.generateRoutine('Same Muscle Snapshot'));
+    cleanup.trackRoutine(routine.id);
+
+    const workoutDay = await apiClient.createWorkoutDay(testData.generateWorkoutDay(routine.id, 1, 'Chest Day'));
+    cleanup.trackWorkoutDay(workoutDay.id);
+
+    const bench = await apiClient.createExercise(
+      testData.generateExercise(workoutDay.id, testData.muscleGroups.CHEST, 'Bench Press', 30, 135, 3)
+    );
+    cleanup.trackExercise(bench.id);
+
+    const incline = await apiClient.createExercise(
+      testData.generateExercise(workoutDay.id, testData.muscleGroups.CHEST, 'Incline Dumbbell Press', 24, 80, 3)
+    );
+    cleanup.trackExercise(incline.id);
+
+    const snapshot = await apiClient.createSnapshot(routine.id);
+
+    expect(snapshot).toBeDefined();
+    expect(snapshot.id).toBeDefined();
+
+    const snapshotExercises = await query(
+      `SELECT se.* FROM snapshot_exercises se
+       JOIN snapshot_workout_days swd ON se.snapshot_workout_day_id = swd.id
+       WHERE swd.snapshot_id = $1
+       ORDER BY se.exercise_name`,
+      [snapshot.id]
+    );
+    expect(snapshotExercises.rows.length).toBe(2);
+    expect(snapshotExercises.rows.every((r: { muscle_group_id: number }) => r.muscle_group_id === testData.muscleGroups.CHEST)).toBe(true);
+    const names = snapshotExercises.rows.map((r: { exercise_name: string }) => r.exercise_name);
+    expect(names).toContain('Bench Press');
+    expect(names).toContain('Incline Dumbbell Press');
+
+    logger.info('✅ Snapshot with two same-muscle-group exercises on one day');
+  });
+
+  test('should snapshot two workout days each with exercises (same muscle group across days)', async () => {
+    const routine = await apiClient.createRoutine(testData.generateRoutine('Two Days Exercise Snapshot'));
+    cleanup.trackRoutine(routine.id);
+
+    const day1 = await apiClient.createWorkoutDay(testData.generateWorkoutDay(routine.id, 1, 'Push Day'));
+    cleanup.trackWorkoutDay(day1.id);
+    const day2 = await apiClient.createWorkoutDay(testData.generateWorkoutDay(routine.id, 2, 'Pull Day'));
+    cleanup.trackWorkoutDay(day2.id);
+
+    const day1Chest = await apiClient.createExercise(
+      testData.generateExercise(day1.id, testData.muscleGroups.CHEST, 'Bench Press', 30, 135, 3)
+    );
+    cleanup.trackExercise(day1Chest.id);
+    const day1Shoulders = await apiClient.createExercise(
+      testData.generateExercise(day1.id, testData.muscleGroups.SHOULDERS, 'Overhead Press', 24, 95, 3)
+    );
+    cleanup.trackExercise(day1Shoulders.id);
+
+    const day2Chest = await apiClient.createExercise(
+      testData.generateExercise(day2.id, testData.muscleGroups.CHEST, 'Cable Flyes', 20, 30, 3)
+    );
+    cleanup.trackExercise(day2Chest.id);
+    const day2Back = await apiClient.createExercise(
+      testData.generateExercise(day2.id, testData.muscleGroups.BACK, 'Rows', 30, 100, 4)
+    );
+    cleanup.trackExercise(day2Back.id);
+
+    const snapshot = await apiClient.createSnapshot(routine.id);
+
+    expect(snapshot).toBeDefined();
+
+    const snapshotDays = await query(
+      'SELECT * FROM snapshot_workout_days WHERE snapshot_id = $1 ORDER BY day_number',
+      [snapshot.id]
+    );
+    expect(snapshotDays.rows.length).toBe(2);
+    const snapDay1Id = snapshotDays.rows.find((r: { original_workout_day_id: number }) => r.original_workout_day_id === day1.id)?.id;
+    const snapDay2Id = snapshotDays.rows.find((r: { original_workout_day_id: number }) => r.original_workout_day_id === day2.id)?.id;
+    expect(snapDay1Id).toBeDefined();
+    expect(snapDay2Id).toBeDefined();
+
+    const snapshotExercises = await query(
+      `SELECT se.*, swd.original_workout_day_id FROM snapshot_exercises se
+       JOIN snapshot_workout_days swd ON se.snapshot_workout_day_id = swd.id
+       WHERE swd.snapshot_id = $1
+       ORDER BY swd.day_number, se.exercise_name`,
+      [snapshot.id]
+    );
+    expect(snapshotExercises.rows.length).toBe(4);
+
+    const day1Exercises = snapshotExercises.rows.filter((r: { original_workout_day_id: number }) => r.original_workout_day_id === day1.id);
+    const day2Exercises = snapshotExercises.rows.filter((r: { original_workout_day_id: number }) => r.original_workout_day_id === day2.id);
+    expect(day1Exercises.length).toBe(2);
+    expect(day2Exercises.length).toBe(2);
+
+    expect(day1Exercises.map((r: { exercise_name: string }) => r.exercise_name).sort()).toEqual(['Bench Press', 'Overhead Press']);
+    expect(day2Exercises.map((r: { exercise_name: string }) => r.exercise_name).sort()).toEqual(['Cable Flyes', 'Rows']);
+
+    logger.info('✅ Snapshot with two workout days, each with exercises (same muscle group CHEST on both days)');
+  });
 });

@@ -23,7 +23,7 @@ describe('Component Test: Create Complete Routine', () => {
   });
 
   afterEach(async () => {
-    await cleanup.cleanupAll();
+    if (cleanup) await cleanup.cleanupAll();
   });
 
   test('should create complete PPL routine with days and sets', async () => {

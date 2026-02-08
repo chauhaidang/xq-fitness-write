@@ -26,7 +26,7 @@ describe('Component Test: Update Workout Day Sets', () => {
   });
 
   afterEach(async () => {
-    await cleanup.cleanupAll();
+    if (cleanup) await cleanup.cleanupAll();
   });
 
   test('should update workout day sets using setId (traditional method)', async () => {

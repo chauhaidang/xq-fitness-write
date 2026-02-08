@@ -1,0 +1,75 @@
+---
+description: "when implementing, fixing, or updating write-service component tests, follow this workflow (same as repo .cursor/rules/component-test.mdc)"
+alwaysApply: false
+---
+
+# Write-Service Component Test Rules
+
+When running or updating component tests for the write-service, follow the project's standard workflow. This matches the repo-level rule at `.cursor/rules/component-test.mdc`.
+
+## Workflow: Running Component Tests
+
+### 1. Build the service container image
+
+From **write-service/** directory:
+
+```bash
+./build-write-service.sh
+```
+
+Use this existing script; do not add a different build flow.
+
+### 2. Generate API client and install dependencies
+
+```bash
+npm run generate:client
+npm install
+```
+
+### 3. Spin up the test environment with xq-infra
+
+- Install xq-cli if needed: `npm install -g @chauhaidang/xq-test-infra`
+- From **write-service/** (same directory as `test-env/`):
+
+```bash
+xq-infra generate -f ./test-env
+xq-infra up
+```
+
+The test environment is defined in **test-env/** (xq-fitness-db, xq-fitness-write-service). Do not use a different path.
+
+### 4. Run component tests
+
+From **write-service/**:
+
+```bash
+npm run test:component:ci
+```
+
+or:
+
+```bash
+npm run test:component
+```
+
+Defaults use the test-env gateway: `API_BASE_URL=http://localhost:8080/xq-fitness-write-service/api/v1`, `HEALTH_CHECK_URL=http://localhost:8080/xq-fitness-write-service/health`.
+
+### 5. Tear down (optional)
+
+From the same directory where you ran `xq-infra up`:
+
+```bash
+xq-infra down
+```
+
+## Port conflicts
+
+- If the environment fails to start or you see "address already in use", check for other stacks (e.g. read-service test env) using the same ports. Run `xq-infra down` in other service directories or stop conflicting containers.
+- Avoid running multiple test envs that share host ports (e.g. 5432 for DB, or the same service port).
+
+## Summary checklist
+
+- [ ] Run `./build-write-service.sh` from **write-service/**.
+- [ ] Run `xq-infra generate -f ./test-env` and `xq-infra up` from **write-service/**.
+- [ ] Run `npm run test:component` or `npm run test:component:ci` from **write-service/**.
+- [ ] If startup fails, check container port conflicts and other services' test envs.

@@ -113,6 +113,39 @@ describe('Component Test: Exercise CRUD', () => {
     });
   });
 
+  describe('Same workout day, same muscle group', () => {
+    test('should allow two exercises for the same muscle group on one workout day', async () => {
+      const routine = await apiClient.createRoutine(testData.generateRoutine('Same Muscle Group Routine'));
+      cleanup!.trackRoutine(routine.id);
+
+      const workoutDay = await apiClient.createWorkoutDay(testData.generateWorkoutDay(routine.id, 1, 'Push Day'));
+      cleanup!.trackWorkoutDay(workoutDay.id);
+
+      const bench = await apiClient.createExercise(
+        testData.generateExercise(workoutDay.id, testData.muscleGroups.CHEST, 'Bench Press', 30, 135, 3)
+      );
+      cleanup!.trackExercise(bench.id);
+
+      const incline = await apiClient.createExercise(
+        testData.generateExercise(workoutDay.id, testData.muscleGroups.CHEST, 'Incline Dumbbell Press', 24, 80, 3)
+      );
+      cleanup!.trackExercise(incline.id);
+
+      const fetchedBench = await apiClient.getExercise(bench.id);
+      const fetchedIncline = await apiClient.getExercise(incline.id);
+
+      expect(fetchedBench.workoutDayId).toBe(workoutDay.id);
+      expect(fetchedBench.muscleGroupId).toBe(testData.muscleGroups.CHEST);
+      expect(fetchedBench.exerciseName).toBe('Bench Press');
+
+      expect(fetchedIncline.workoutDayId).toBe(workoutDay.id);
+      expect(fetchedIncline.muscleGroupId).toBe(testData.muscleGroups.CHEST);
+      expect(fetchedIncline.exerciseName).toBe('Incline Dumbbell Press');
+
+      logger.info('✅ Two exercises for same muscle group on one day created and retrieved');
+    });
+  });
+
   describe('DELETE /exercises/:id', () => {
     test('should delete exercise (returns 204) and make subsequent GET throw', async () => {
       const routine = await apiClient.createRoutine(testData.generateRoutine('Delete Exercise Routine'));

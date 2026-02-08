@@ -27,7 +27,7 @@ describe('Component Test: Create Workout Day Sets - Upsert Behavior', () => {
   });
 
   afterEach(async () => {
-    await cleanup.cleanupAll();
+    if (cleanup) await cleanup.cleanupAll();
   });
 
   test('should create new workout day set when none exists (returns 201)', async () => {
