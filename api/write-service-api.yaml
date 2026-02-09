@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: XQ Fitness Write Service API
   description: Write service for creating, updating, and deleting workout routines and related data
-  version: 1.3.0
+  version: 1.3.1
   contact:
     name: XQ Fitness Team
 
@@ -455,9 +455,6 @@ paths:
         2. Provide `workoutDayId` and `muscleGroupId` as query parameters (e.g., `/workout-day-sets/0?workoutDayId=1&muscleGroupId=2`) - alternative method when setId is unknown
         
         When query parameters are provided, they take precedence and the setId in the path is ignored.
-        
-        **Deprecated:** This endpoint is deprecated. Use `PUT /exercises/{exerciseId}` instead.
-      deprecated: true
       operationId: updateWorkoutDaySet
       tags:
         - Workout Day Sets
