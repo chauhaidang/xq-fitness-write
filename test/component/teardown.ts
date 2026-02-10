@@ -3,9 +3,8 @@
  * Runs after all tests complete
  */
 
-import { logger, generateMarkdownFromJunit } from '@chauhaidang/xq-js-common-kit';
-import fs from 'fs';
-import { writeFileSync } from 'node:fs';
+import { generateTestReport } from '@chauhaidang/xq-test-utils';
+import { logger } from '@chauhaidang/xq-common-kit';
 
 /** Markdown section with detailed description of Exercise CRUD component tests */
 function getExerciseTestDetailSection(): string {
@@ -41,10 +40,11 @@ export default async (): Promise<void> => {
 
   // Generate test report
   try {
-    const xmlContent = fs.readFileSync('./test/component/tsr/junit.xml', 'utf8');
-    const markdown = await generateMarkdownFromJunit(xmlContent);
-    const exerciseDetail = getExerciseTestDetailSection();
-    writeFileSync('./test/component/tsr/report.md', markdown + '\n\n' + exerciseDetail);
+    await generateTestReport({
+      junitXmlPath: './test/component/tsr/junit.xml',
+      reportMdPath: './test/component/tsr/report.md',
+      appendMarkdown: getExerciseTestDetailSection(),
+    });
   } catch (error) {
     logger.warn('⚠️ Could not generate test report:', error);
   }

@@ -43,7 +43,7 @@ jobs:
 
       - name: Install global tools
         run: |
-          npm install -g @chauhaidang/xq-test-infra
+          npm install -g @chauhaidang/xq-test-infra@1.0.3
           npm install -g @openapitools/openapi-generator-cli
 
       - name: build write-service
@@ -99,7 +99,7 @@ jobs:
 
       - name: Install global tools
         run: |
-          npm install -g @chauhaidang/xq-test-infra
+          npm install -g @chauhaidang/xq-test-infra@1.0.3
           npm install -g @openapitools/openapi-generator-cli
 
       - name: build write-service

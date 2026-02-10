@@ -11,7 +11,7 @@
 import { testData } from '../helpers/test-data';
 import { ApiClient } from '../helpers/api-client';
 import { CleanupHelper } from '../helpers/cleanup';
-import { logger } from '@chauhaidang/xq-js-common-kit';
+import { logger } from '@chauhaidang/xq-common-kit';
 
 const apiClient = new ApiClient(process.env.API_BASE_URL || 'http://localhost:8080/xq-fitness-write-service/api/v1');
 

@@ -28,7 +28,7 @@ npm install
 
 ### 3. Spin up the test environment with xq-infra
 
-- Install xq-cli if needed: `npm install -g @chauhaidang/xq-test-infra`
+- Install xq-cli if needed: `npm install -g @chauhaidang/xq-test-infra@1.0.3`
 - From **write-service/** (same directory as `test-env/`):
 
 ```bash

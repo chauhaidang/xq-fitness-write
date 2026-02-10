@@ -12,7 +12,7 @@ Tests are managed from the root package.json with centralized dependencies and c
 
 - **Node.js 18+**, **npm 8+**
 - **Docker** (for building the service image and running test-env)
-- **xq-infra** (xq-cli): `npm install -g @chauhaidang/xq-test-infra`
+- **xq-infra** (xq-cli): `npm install -g @chauhaidang/xq-test-infra@1.0.3`
 
 ### Recommended: Run with xq-infra (matches CI and project component-test rule)
 
@@ -129,7 +129,7 @@ npm test
 
 import { testData } from '../helpers/test-data';
 import { ApiClient } from '../helpers/api-client';
-import { Logger } from '@chauhaidang/xq-js-common-kit';
+import { Logger } from '@chauhaidang/xq-common-kit';
 
 const logger = new Logger('MyWorkflow');
 const apiClient = new ApiClient(process.env.API_BASE_URL || 'http://localhost:3000/api/v1');
@@ -277,7 +277,7 @@ See `write-service/.github/workflows/ci.yml` for workflow configuration.
 1. **Test Isolation**: Each test should be independent
 2. **Cleanup**: Always clean up test data in `afterEach` or `afterAll`
 3. **Unique Data**: Use `testData.generateRoutine()` for unique names
-4. **Logging**: Use logger from `@chauhaidang/xq-js-common-kit`
+4. **Logging**: Use logger from `@chauhaidang/xq-common-kit`
 5. **Assertions**: Verify all critical workflow steps
 6. **Error Handling**: Handle expected failures gracefully
 
@@ -290,7 +290,7 @@ See `write-service/.github/workflows/ci.yml` for workflow configuration.
 - **TypeScript 5.5+** - Type safety
 - **ts-jest 29.2+** - TypeScript compilation
 - **wait-on 8.0+** - Service health checks
-- **@chauhaidang/xq-js-common-kit** - Internal logging utilities
+- **@chauhaidang/xq-common-kit** - Internal logging utilities
 
 ---
 

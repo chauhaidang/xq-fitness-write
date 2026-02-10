@@ -37,7 +37,8 @@
     "pg-pool": "^3.6.1"
   },
   "devDependencies": {
-    "@chauhaidang/xq-js-common-kit": "1.0.7",
+    "@chauhaidang/xq-common-kit": "1.0.10",
+    "@chauhaidang/xq-test-utils": "^1.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.5.0",
     "@types/pg": "^8.16.0",

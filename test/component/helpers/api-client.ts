@@ -16,7 +16,7 @@ import {
   ExerciseResponse,
   WeeklySnapshotResponse,
 } from 'xq-fitness-write-client';
-import { logger } from '@chauhaidang/xq-js-common-kit';
+import { logger } from '@chauhaidang/xq-common-kit';
 
 export class ApiClient {
   private routinesApi: RoutinesApi;
