@@ -1,21 +1,12 @@
-/**
- * Unit tests: ExerciseService
- *
- * Covers create, getById, update, delete with mocked ExerciseModel and WorkoutDayModel.
- * Scenarios: happy path (workout day exists / exercise found) and error path (not found).
- *
- * create: checks WorkoutDayModel.exists then ExerciseModel.create; throws "Workout day not found" if day missing.
- * getById: ExerciseModel.findById; throws "Exercise not found" if null.
- * update: ExerciseModel.exists then ExerciseModel.update; throws "Exercise not found" if missing.
- * delete: ExerciseModel.exists then ExerciseModel.delete; throws "Exercise not found" if missing.
- */
-
-const ExerciseService = require('../../../src/services/exerciseService');
-const ExerciseModel = require('../../../src/models/exerciseModel');
-const WorkoutDayModel = require('../../../src/models/workoutDayModel');
+import { ExerciseService } from '../../../src/services/exerciseService';
+import { ExerciseModel } from '../../../src/models/exerciseModel';
+import { WorkoutDayModel } from '../../../src/models/workoutDayModel';
 
 jest.mock('../../../src/models/exerciseModel');
 jest.mock('../../../src/models/workoutDayModel');
+
+const mockWorkoutDayModel = WorkoutDayModel as jest.Mocked<typeof WorkoutDayModel>;
+const mockExerciseModel = ExerciseModel as jest.Mocked<typeof ExerciseModel>;
 
 describe('ExerciseService', () => {
   beforeEach(() => {
@@ -46,18 +37,18 @@ describe('ExerciseService', () => {
         updatedAt: '2025-01-27T10:00:00Z',
       };
 
-      WorkoutDayModel.exists.mockResolvedValue(true);
-      ExerciseModel.create.mockResolvedValue(created);
+      mockWorkoutDayModel.exists.mockResolvedValue(true);
+      mockExerciseModel.create.mockResolvedValue(created as never);
 
       const result = await ExerciseService.create(input);
 
-      expect(WorkoutDayModel.exists).toHaveBeenCalledWith(1);
-      expect(ExerciseModel.create).toHaveBeenCalledWith(input);
+      expect(mockWorkoutDayModel.exists).toHaveBeenCalledWith(1);
+      expect(mockExerciseModel.create).toHaveBeenCalledWith(input);
       expect(result).toEqual(created);
     });
 
     it('should throw "Workout day not found" and not call ExerciseModel.create when workout day does not exist', async () => {
-      WorkoutDayModel.exists.mockResolvedValue(false);
+      mockWorkoutDayModel.exists.mockResolvedValue(false);
 
       await expect(
         ExerciseService.create({
@@ -70,7 +61,7 @@ describe('ExerciseService', () => {
         })
       ).rejects.toThrow('Workout day not found');
 
-      expect(ExerciseModel.create).not.toHaveBeenCalled();
+      expect(mockExerciseModel.create).not.toHaveBeenCalled();
     });
   });
 
@@ -89,16 +80,16 @@ describe('ExerciseService', () => {
         updatedAt: '2025-01-27T10:00:00Z',
       };
 
-      ExerciseModel.findById.mockResolvedValue(exercise);
+      mockExerciseModel.findById.mockResolvedValue(exercise as never);
 
       const result = await ExerciseService.getById(1);
 
-      expect(ExerciseModel.findById).toHaveBeenCalledWith(1);
+      expect(mockExerciseModel.findById).toHaveBeenCalledWith(1);
       expect(result).toEqual(exercise);
     });
 
     it('should throw "Exercise not found" when ExerciseModel.findById returns null', async () => {
-      ExerciseModel.findById.mockResolvedValue(null);
+      mockExerciseModel.findById.mockResolvedValue(null as never);
 
       await expect(ExerciseService.getById(999)).rejects.toThrow('Exercise not found');
     });
@@ -120,40 +111,40 @@ describe('ExerciseService', () => {
         updatedAt: '2025-01-27T10:15:00Z',
       };
 
-      ExerciseModel.exists.mockResolvedValue(true);
-      ExerciseModel.update.mockResolvedValue(updated);
+      mockExerciseModel.exists.mockResolvedValue(true);
+      mockExerciseModel.update.mockResolvedValue(updated as never);
 
       const result = await ExerciseService.update(1, updateData);
 
-      expect(ExerciseModel.exists).toHaveBeenCalledWith(1);
-      expect(ExerciseModel.update).toHaveBeenCalledWith(1, updateData);
+      expect(mockExerciseModel.exists).toHaveBeenCalledWith(1);
+      expect(mockExerciseModel.update).toHaveBeenCalledWith(1, updateData);
       expect(result).toEqual(updated);
     });
 
     it('should throw "Exercise not found" and not call ExerciseModel.update when exercise does not exist', async () => {
-      ExerciseModel.exists.mockResolvedValue(false);
+      mockExerciseModel.exists.mockResolvedValue(false);
 
       await expect(ExerciseService.update(999, { totalReps: 35 })).rejects.toThrow('Exercise not found');
-      expect(ExerciseModel.update).not.toHaveBeenCalled();
+      expect(mockExerciseModel.update).not.toHaveBeenCalled();
     });
   });
 
   describe('delete', () => {
     it('should call ExerciseModel.exists and ExerciseModel.delete when exercise found', async () => {
-      ExerciseModel.exists.mockResolvedValue(true);
-      ExerciseModel.delete.mockResolvedValue(true);
+      mockExerciseModel.exists.mockResolvedValue(true);
+      mockExerciseModel.delete.mockResolvedValue(undefined as never);
 
       await ExerciseService.delete(1);
 
-      expect(ExerciseModel.exists).toHaveBeenCalledWith(1);
-      expect(ExerciseModel.delete).toHaveBeenCalledWith(1);
+      expect(mockExerciseModel.exists).toHaveBeenCalledWith(1);
+      expect(mockExerciseModel.delete).toHaveBeenCalledWith(1);
     });
 
     it('should throw "Exercise not found" and not call ExerciseModel.delete when exercise does not exist', async () => {
-      ExerciseModel.exists.mockResolvedValue(false);
+      mockExerciseModel.exists.mockResolvedValue(false);
 
       await expect(ExerciseService.delete(999)).rejects.toThrow('Exercise not found');
-      expect(ExerciseModel.delete).not.toHaveBeenCalled();
+      expect(mockExerciseModel.delete).not.toHaveBeenCalled();
     });
   });
 });

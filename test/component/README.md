@@ -98,9 +98,9 @@ write-service/                   # Root directory
 
 ## Environment Variables
 
-| Variable           | Default                        | Description                |
-| ------------------ | ------------------------------ | -------------------------- |
-| `API_BASE_URL`     | `http://localhost:8080/xq-fitness-write-service/api/v1` | Base URL (test-env gateway) |
+| Variable           | Default                                                 | Description                     |
+| ------------------ | ------------------------------------------------------- | ------------------------------- |
+| `API_BASE_URL`     | `http://localhost:8080/xq-fitness-write-service/api/v1` | Base URL (test-env gateway)     |
 | `HEALTH_CHECK_URL` | `http://localhost:8080/xq-fitness-write-service/health` | Health check (test-env gateway) |
 
 ### Example

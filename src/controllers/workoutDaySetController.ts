@@ -1,140 +1,145 @@
-const WorkoutDaySetModel = require('../models/workoutDaySetModel');
-const WorkoutDayModel = require('../models/workoutDayModel');
+import type { Request, Response } from 'express';
+import { WorkoutDaySetModel } from '../models/workoutDaySetModel';
+import { WorkoutDayModel } from '../models/workoutDayModel';
+import { getParam } from '../utils/params';
 
-class WorkoutDaySetController {
-  static async createWorkoutDaySet(req, res) {
+interface DbError extends Error {
+  code?: string;
+}
+
+export class WorkoutDaySetController {
+  static async createWorkoutDaySet(req: Request, res: Response): Promise<void> {
     try {
-      const dayExists = await WorkoutDayModel.exists(req.validatedBody.workoutDayId);
+      const body = req.validatedBody as { workoutDayId: number; muscleGroupId: number; numberOfSets: number; notes?: string };
+      const dayExists = await WorkoutDayModel.exists(body.workoutDayId);
 
       if (!dayExists) {
-        return res.status(404).json({
+        res.status(404).json({
           code: 'NOT_FOUND',
           message: 'Workout day not found',
           timestamp: new Date().toISOString(),
         });
+        return;
       }
 
-      // Check if a workout day set already exists for this workout day and muscle group
-      const existingSet = await WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(
-        req.validatedBody.workoutDayId,
-        req.validatedBody.muscleGroupId
-      );
+      const existingSet = await WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(body.workoutDayId, body.muscleGroupId);
 
       if (existingSet) {
-        // If it exists, update it instead of creating a new one (upsert behavior)
-        const updatedSet = await WorkoutDaySetModel.update(existingSet.id, req.validatedBody);
-        return res.status(200).json(updatedSet);
+        const updatedSet = await WorkoutDaySetModel.update(existingSet.id, body);
+        res.status(200).json(updatedSet);
+        return;
       }
 
-      // Create new workout day set if it doesn't exist
-      const workoutDaySet = await WorkoutDaySetModel.create(req.validatedBody);
+      const workoutDaySet = await WorkoutDaySetModel.create(body);
       res.status(201).json(workoutDaySet);
     } catch (error) {
+      const err = error as DbError;
       console.error('Error creating workout day set:', error);
-      if (error.code === '23505') {
-        // Unique constraint violation (shouldn't happen now, but keep for safety)
-        return res.status(400).json({
+      if (err.code === '23505') {
+        res.status(400).json({
           code: 'DUPLICATE_ERROR',
           message: 'This muscle group already has a set configuration for this workout day',
           timestamp: new Date().toISOString(),
         });
+        return;
       }
-      if (error.code === '23503') {
-        // Foreign key violation
-        return res.status(404).json({
+      if (err.code === '23503') {
+        res.status(404).json({
           code: 'NOT_FOUND',
           message: 'Muscle group not found',
           timestamp: new Date().toISOString(),
         });
+        return;
       }
       res.status(500).json({
         code: 'INTERNAL_ERROR',
-        message: error.message,
+        message: err.message,
         timestamp: new Date().toISOString(),
       });
     }
   }
 
-  static async updateWorkoutDaySet(req, res) {
+  static async updateWorkoutDaySet(req: Request, res: Response): Promise<void> {
     try {
-      const { setId } = req.params;
+      const setId = getParam(req, 'setId');
       const { workoutDayId, muscleGroupId } = req.query;
 
-      let actualSetId = setId;
+      let actualSetId: string | number = setId;
 
-      // If query parameters are provided, use them to find the setId
       if (workoutDayId || muscleGroupId) {
-        // Both query parameters must be provided together
         if (!workoutDayId || !muscleGroupId) {
-          return res.status(400).json({
+          res.status(400).json({
             code: 'VALIDATION_ERROR',
             message: 'Both workoutDayId and muscleGroupId query parameters must be provided together',
             timestamp: new Date().toISOString(),
           });
+          return;
         }
 
         const workoutDaySet = await WorkoutDaySetModel.findByWorkoutDayAndMuscleGroup(
-          parseInt(workoutDayId),
-          parseInt(muscleGroupId)
+          parseInt(workoutDayId as string, 10),
+          parseInt(muscleGroupId as string, 10)
         );
 
         if (!workoutDaySet) {
-          return res.status(404).json({
+          res.status(404).json({
             code: 'NOT_FOUND',
             message: 'Workout day set not found for the given workout day and muscle group',
             timestamp: new Date().toISOString(),
           });
+          return;
         }
 
         actualSetId = workoutDaySet.id;
       } else {
-        // Use setId from path parameter (backward compatible)
         const exists = await WorkoutDaySetModel.exists(setId);
 
         if (!exists) {
-          return res.status(404).json({
+          res.status(404).json({
             code: 'NOT_FOUND',
             message: 'Workout day set not found',
             timestamp: new Date().toISOString(),
           });
+          return;
         }
       }
 
-      const workoutDaySet = await WorkoutDaySetModel.update(actualSetId, req.validatedBody);
+      const workoutDaySet = await WorkoutDaySetModel.update(actualSetId, req.validatedBody as { numberOfSets?: number; notes?: string });
       res.status(200).json(workoutDaySet);
     } catch (error) {
+      const err = error as Error;
       console.error('Error updating workout day set:', error);
       res.status(500).json({
         code: 'INTERNAL_ERROR',
-        message: error.message,
+        message: err.message,
         timestamp: new Date().toISOString(),
       });
     }
   }
 
-  static async deleteWorkoutDaySet(req, res) {
+  static async deleteWorkoutDaySet(req: Request, res: Response): Promise<void> {
     try {
-      const { setId } = req.params;
+      const setId = getParam(req, 'setId');
       const deleted = await WorkoutDaySetModel.delete(setId);
 
       if (!deleted) {
-        return res.status(404).json({
+        res.status(404).json({
           code: 'NOT_FOUND',
           message: 'Workout day set not found',
           timestamp: new Date().toISOString(),
         });
+        return;
       }
 
       res.status(204).send();
     } catch (error) {
+      const err = error as Error;
       console.error('Error deleting workout day set:', error);
       res.status(500).json({
         code: 'INTERNAL_ERROR',
-        message: error.message,
+        message: err.message,
         timestamp: new Date().toISOString(),
       });
     }
   }
 }
-
-module.exports = WorkoutDaySetController;

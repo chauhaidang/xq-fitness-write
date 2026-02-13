@@ -1,9 +1,10 @@
 module.exports = {
   displayName: 'Unit Tests',
+  preset: 'ts-jest',
   testEnvironment: 'node',
   coverageDirectory: './coverage',
-  collectCoverageFrom: ['src/**/*.js', '!src/index.js', '!src/config/database.js'],
-  testMatch: ['**/test/unit/**/*.test.js'],
+  collectCoverageFrom: ['src/**/*.ts', '!src/index.ts', '!src/config/database.ts'],
+  testMatch: ['**/test/unit/**/*.test.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },

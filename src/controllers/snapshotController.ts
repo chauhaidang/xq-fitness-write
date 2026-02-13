@@ -1,70 +1,73 @@
-const SnapshotService = require('../services/snapshotService');
-const RoutineModel = require('../models/routineModel');
-const Joi = require('joi');
+import type { Request, Response } from 'express';
+import Joi from 'joi';
+import { SnapshotService } from '../services/snapshotService';
+import { RoutineModel } from '../models/routineModel';
+import { getParam } from '../utils/params';
 
-class SnapshotController {
-  static async createSnapshot(req, res) {
+interface DbError extends Error {
+  code?: string;
+}
+
+export class SnapshotController {
+  static async createSnapshot(req: Request, res: Response): Promise<void> {
     try {
-      const { routineId } = req.params;
+      const routineId = getParam(req, 'routineId');
 
-      // Validate routineId parameter
       const routineIdSchema = Joi.number().integer().positive().required();
       const { error, value } = routineIdSchema.validate(parseInt(routineId, 10));
 
       if (error) {
-        return res.status(400).json({
+        res.status(400).json({
           code: 'VALIDATION_ERROR',
           message: 'Invalid routineId parameter',
           timestamp: new Date().toISOString(),
           details: error.details.map((d) => d.message),
         });
+        return;
       }
 
-      const validatedRoutineId = value;
+      const validatedRoutineId = value as number;
 
-      // Verify routine exists
       const routineExists = await RoutineModel.exists(validatedRoutineId);
       if (!routineExists) {
-        return res.status(404).json({
+        res.status(404).json({
           code: 'NOT_FOUND',
           message: 'Routine not found',
           timestamp: new Date().toISOString(),
         });
+        return;
       }
 
       const snapshot = await SnapshotService.createSnapshot(validatedRoutineId);
 
       res.status(201).json(snapshot);
     } catch (error) {
+      const err = error as DbError;
       console.error('Error creating snapshot:', error);
 
-      // Handle specific error cases
-      if (error.message === 'Routine not found') {
-        return res.status(404).json({
+      if (err.message === 'Routine not found') {
+        res.status(404).json({
           code: 'NOT_FOUND',
-          message: error.message,
+          message: err.message,
           timestamp: new Date().toISOString(),
         });
+        return;
       }
 
-      // Handle database transaction errors
-      if (error.code && error.code.startsWith('23')) {
-        // PostgreSQL constraint violation
-        return res.status(400).json({
+      if (err.code && err.code.startsWith('23')) {
+        res.status(400).json({
           code: 'VALIDATION_ERROR',
           message: 'Invalid snapshot data',
           timestamp: new Date().toISOString(),
         });
+        return;
       }
 
-      // Generic error
       res.status(500).json({
         code: 'INTERNAL_ERROR',
-        message: error.message || 'Failed to create snapshot',
+        message: err.message || 'Failed to create snapshot',
         timestamp: new Date().toISOString(),
       });
     }
   }
 }
-
-module.exports = SnapshotController;

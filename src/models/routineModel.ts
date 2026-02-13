@@ -1,22 +1,28 @@
-const db = require('../config/database');
+import db from '../config/database';
 
-class RoutineModel {
-  /**
-   * Transform database row (snake_case) to API response (camelCase)
-   */
-  static transformRow(row) {
+export interface RoutineResponse {
+  id: number;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export class RoutineModel {
+  static transformRow(row: Record<string, unknown> | null): RoutineResponse | null {
     if (!row) return null;
     return {
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      isActive: row.is_active,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      id: row.id as number,
+      name: row.name as string,
+      description: row.description as string | null,
+      isActive: row.is_active as boolean,
+      createdAt: row.created_at as Date,
+      updatedAt: row.updated_at as Date,
     };
   }
 
-  static async create(data) {
+  static async create(data: { name: string; description?: string | null; isActive?: boolean }): Promise<RoutineResponse | null> {
     const query = `
       INSERT INTO workout_routines (name, description, is_active)
       VALUES ($1, $2, $3)
@@ -24,12 +30,12 @@ class RoutineModel {
     `;
     const values = [data.name, data.description || null, data.isActive !== false];
     const result = await db.query(query, values);
-    return this.transformRow(result.rows[0]);
+    return this.transformRow(result.rows[0] as Record<string, unknown>);
   }
 
-  static async update(id, data) {
-    const updates = [];
-    const values = [];
+  static async update(id: string | number, data: { name?: string; description?: string | null; isActive?: boolean }): Promise<RoutineResponse | null> {
+    const updates: string[] = [];
+    const values: unknown[] = [];
     let paramCount = 1;
 
     if (data.name !== undefined) {
@@ -58,20 +64,18 @@ class RoutineModel {
     `;
 
     const result = await db.query(query, values);
-    return this.transformRow(result.rows[0]);
+    return this.transformRow(result.rows[0] as Record<string, unknown>);
   }
 
-  static async delete(id) {
+  static async delete(id: string | number): Promise<Record<string, unknown> | undefined> {
     const query = 'DELETE FROM workout_routines WHERE id = $1 RETURNING id';
     const result = await db.query(query, [id]);
-    return result.rows[0];
+    return result.rows[0] as Record<string, unknown> | undefined;
   }
 
-  static async exists(id) {
+  static async exists(id: string | number): Promise<boolean> {
     const query = 'SELECT EXISTS(SELECT 1 FROM workout_routines WHERE id = $1)';
     const result = await db.query(query, [id]);
-    return result?.rows?.[0]?.exists || false;
+    return (result?.rows?.[0] as { exists?: boolean })?.exists || false;
   }
 }
-
-module.exports = RoutineModel;

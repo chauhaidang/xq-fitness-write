@@ -1,49 +1,39 @@
-const express = require('express');
+import express from 'express';
+import { validate } from '../middleware/validator';
+import * as schemas from '../validators/schemas';
+import { RoutineController } from '../controllers/routineController';
+import { WorkoutDayController } from '../controllers/workoutDayController';
+import { WorkoutDaySetController } from '../controllers/workoutDaySetController';
+import { ExerciseController } from '../controllers/exerciseController';
+import { SnapshotController } from '../controllers/snapshotController';
+
 const router = express.Router();
-const validate = require('../middleware/validator');
-const schemas = require('../validators/schemas');
-const RoutineController = require('../controllers/routineController');
-const WorkoutDayController = require('../controllers/workoutDayController');
-const WorkoutDaySetController = require('../controllers/workoutDaySetController');
-const ExerciseController = require('../controllers/exerciseController');
-const SnapshotController = require('../controllers/snapshotController');
 
-// Routine routes
 router.post('/routines', validate(schemas.createRoutineSchema), RoutineController.createRoutine);
-
 router.put('/routines/:routineId', validate(schemas.updateRoutineSchema), RoutineController.updateRoutine);
-
 router.delete('/routines/:routineId', RoutineController.deleteRoutine);
 
-// Workout day routes
 router.post('/workout-days', validate(schemas.createWorkoutDaySchema), WorkoutDayController.createWorkoutDay);
-
 router.put('/workout-days/:dayId', validate(schemas.updateWorkoutDaySchema), WorkoutDayController.updateWorkoutDay);
-
 router.delete('/workout-days/:dayId', WorkoutDayController.deleteWorkoutDay);
 
-// Workout day sets routes
 router.post(
   '/workout-day-sets',
   validate(schemas.createWorkoutDaySetSchema),
   WorkoutDaySetController.createWorkoutDaySet
 );
-
 router.put(
   '/workout-day-sets/:setId',
   validate(schemas.updateWorkoutDaySetSchema),
   WorkoutDaySetController.updateWorkoutDaySet
 );
-
 router.delete('/workout-day-sets/:setId', WorkoutDaySetController.deleteWorkoutDaySet);
 
-// Exercise routes
 router.post('/exercises', validate(schemas.createExerciseSchema), ExerciseController.createExercise);
 router.get('/exercises/:exerciseId', ExerciseController.getExercise);
 router.put('/exercises/:exerciseId', validate(schemas.updateExerciseSchema), ExerciseController.updateExercise);
 router.delete('/exercises/:exerciseId', ExerciseController.deleteExercise);
 
-// Snapshot routes
 router.post('/routines/:routineId/snapshots', SnapshotController.createSnapshot);
 
-module.exports = router;
+export default router;

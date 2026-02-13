@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'src/**'
+      - 'package.json'
+      - 'Dockerfile'
       - '.github/workflows/ci.yml'
   workflow_dispatch:
 

@@ -10,12 +10,15 @@ ENV GITHUB_TOKEN=${GITHUB_TOKEN}
 # Copy package files (exclude lock file to avoid file:// dependency issues)
 COPY package.json ./
 COPY .npmrc ./
-# Install dependencies (production only)
-# Lock file will be generated fresh without file:// devDependencies
-RUN npm install --production --no-audit
+# Install all deps (including devDependencies for TypeScript build)
+RUN npm install --no-audit
 
-# Copy source code
+# Copy source and config
 COPY src ./src
+COPY tsconfig.json ./
+
+# Build TypeScript
+RUN npm run build
 
 # Runtime stage
 FROM node:18-alpine
@@ -25,9 +28,10 @@ WORKDIR /app
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
 
-# Copy node_modules and source from builder
+# Copy node_modules and built output from builder
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/src ./src
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/dist ./dist
 
 # Expose port
 EXPOSE 3000
@@ -40,4 +44,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
 # Run the application
-CMD ["node", "src/index.js"]
+CMD ["node", "dist/src/index.js"]

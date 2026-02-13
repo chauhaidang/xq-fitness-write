@@ -1,11 +1,11 @@
-const {
+import {
   createRoutineSchema,
   updateRoutineSchema,
   createWorkoutDaySchema,
   updateWorkoutDaySchema,
   createWorkoutDaySetSchema,
   updateWorkoutDaySetSchema,
-} = require('../../../src/validators/schemas');
+} from '../../../src/validators/schemas';
 
 describe('Validation Schemas', () => {
   describe('createRoutineSchema', () => {
@@ -79,7 +79,7 @@ describe('Validation Schemas', () => {
         const { error } = createRoutineSchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('"name" is required');
+        expect(error!.details[0].message).toContain('"name" is required');
       });
 
       it('should fail when name is empty string', () => {
@@ -90,7 +90,7 @@ describe('Validation Schemas', () => {
         const { error } = createRoutineSchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('"name"');
+        expect(error!.details[0].message).toContain('"name"');
       });
 
       it('should fail when name exceeds 200 characters', () => {
@@ -101,7 +101,7 @@ describe('Validation Schemas', () => {
         const { error } = createRoutineSchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('"name"');
+        expect(error!.details[0].message).toContain('"name"');
       });
 
       it('should fail when description exceeds 1000 characters', () => {
@@ -113,7 +113,7 @@ describe('Validation Schemas', () => {
         const { error } = createRoutineSchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('"description"');
+        expect(error!.details[0].message).toContain('"description"');
       });
 
       it('should fail when isActive is not a boolean', () => {
@@ -125,7 +125,7 @@ describe('Validation Schemas', () => {
         const { error } = createRoutineSchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('"isActive"');
+        expect(error!.details[0].message).toContain('"isActive"');
       });
     });
 
@@ -228,7 +228,7 @@ describe('Validation Schemas', () => {
         const { error } = updateRoutineSchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('at least 1');
+        expect(error!.details[0].message).toContain('at least 1');
       });
 
       it('should fail when name is too long', () => {
@@ -328,7 +328,7 @@ describe('Validation Schemas', () => {
         const { error } = createWorkoutDaySchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('"routineId" is required');
+        expect(error!.details[0].message).toContain('"routineId" is required');
       });
 
       it('should fail when dayNumber is missing', () => {
@@ -340,7 +340,7 @@ describe('Validation Schemas', () => {
         const { error } = createWorkoutDaySchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('"dayNumber" is required');
+        expect(error!.details[0].message).toContain('"dayNumber" is required');
       });
 
       it('should fail when dayName is missing', () => {
@@ -352,7 +352,7 @@ describe('Validation Schemas', () => {
         const { error } = createWorkoutDaySchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('"dayName" is required');
+        expect(error!.details[0].message).toContain('"dayName" is required');
       });
 
       it('should fail when routineId is not a positive integer', () => {
@@ -365,7 +365,7 @@ describe('Validation Schemas', () => {
         const { error } = createWorkoutDaySchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('"routineId"');
+        expect(error!.details[0].message).toContain('"routineId"');
       });
 
       it('should fail when routineId is zero', () => {
@@ -390,7 +390,7 @@ describe('Validation Schemas', () => {
         const { error } = createWorkoutDaySchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('"dayNumber"');
+        expect(error!.details[0].message).toContain('"dayNumber"');
       });
 
       it('should fail when dayName is empty', () => {
@@ -534,7 +534,7 @@ describe('Validation Schemas', () => {
         const { error } = updateWorkoutDaySchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('at least 1');
+        expect(error!.details[0].message).toContain('at least 1');
       });
 
       it('should fail when dayNumber is less than 1', () => {
@@ -644,7 +644,7 @@ describe('Validation Schemas', () => {
         const { error } = createWorkoutDaySetSchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('"workoutDayId" is required');
+        expect(error!.details[0].message).toContain('"workoutDayId" is required');
       });
 
       it('should fail when muscleGroupId is missing', () => {
@@ -656,7 +656,7 @@ describe('Validation Schemas', () => {
         const { error } = createWorkoutDaySetSchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('"muscleGroupId" is required');
+        expect(error!.details[0].message).toContain('"muscleGroupId" is required');
       });
 
       it('should fail when numberOfSets is missing', () => {
@@ -668,7 +668,7 @@ describe('Validation Schemas', () => {
         const { error } = createWorkoutDaySetSchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('"numberOfSets" is required');
+        expect(error!.details[0].message).toContain('"numberOfSets" is required');
       });
 
       it('should fail when workoutDayId is not a positive integer', () => {
@@ -705,7 +705,7 @@ describe('Validation Schemas', () => {
         const { error } = createWorkoutDaySetSchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('"numberOfSets"');
+        expect(error!.details[0].message).toContain('"numberOfSets"');
       });
 
       it('should fail when notes exceed 1000 characters', () => {
@@ -826,7 +826,7 @@ describe('Validation Schemas', () => {
         const { error } = updateWorkoutDaySetSchema.validate(invalidData);
 
         expect(error).toBeDefined();
-        expect(error.details[0].message).toContain('at least 1');
+        expect(error!.details[0].message).toContain('at least 1');
       });
 
       it('should fail when numberOfSets is less than 1', () => {

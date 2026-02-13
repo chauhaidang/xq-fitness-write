@@ -1,13 +1,12 @@
-const Joi = require('joi');
-const validate = require('../../../src/middleware/validator');
+import Joi from 'joi';
+import { validate } from '../../../src/middleware/validator';
 
 describe('Validation Middleware', () => {
-  let mockRequest;
-  let mockResponse;
-  let nextFunction;
+  let mockRequest: { body: Record<string, unknown>; validatedBody?: Record<string, unknown> };
+  let mockResponse: { status: jest.Mock; json: jest.Mock };
+  let nextFunction: jest.Mock;
 
   beforeEach(() => {
-    // Reset mocks before each test
     mockRequest = {
       body: {},
     };
@@ -30,7 +29,7 @@ describe('Validation Middleware', () => {
       mockRequest.body = { name: 'Test Name' };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledTimes(1);
       expect(mockResponse.status).not.toHaveBeenCalled();
@@ -45,11 +44,11 @@ describe('Validation Middleware', () => {
       mockRequest.body = { name: 'Test' };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(mockRequest.validatedBody).toBeDefined();
-      expect(mockRequest.validatedBody.name).toBe('Test');
-      expect(mockRequest.validatedBody.value).toBe(10); // default value
+      expect(mockRequest.validatedBody!.name).toBe('Test');
+      expect(mockRequest.validatedBody!.value).toBe(10);
     });
 
     it('should handle complex nested validation', () => {
@@ -67,7 +66,7 @@ describe('Validation Middleware', () => {
       };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledTimes(1);
       expect(mockRequest.validatedBody).toEqual(mockRequest.body);
@@ -83,10 +82,10 @@ describe('Validation Middleware', () => {
       };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledTimes(1);
-      expect(mockRequest.validatedBody.name).toBe('Test');
+      expect(mockRequest.validatedBody!.name).toBe('Test');
       expect(mockRequest.validatedBody).not.toHaveProperty('unknownField');
     });
 
@@ -98,9 +97,9 @@ describe('Validation Middleware', () => {
       mockRequest.body = { name: 'Test' };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
-      expect(mockRequest.validatedBody.isActive).toBe(true);
+      expect(mockRequest.validatedBody!.isActive).toBe(true);
     });
   });
 
@@ -112,7 +111,7 @@ describe('Validation Middleware', () => {
       mockRequest.body = {};
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(nextFunction).not.toHaveBeenCalled();
@@ -125,7 +124,7 @@ describe('Validation Middleware', () => {
       mockRequest.body = {};
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -141,7 +140,7 @@ describe('Validation Middleware', () => {
       mockRequest.body = {};
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -157,7 +156,7 @@ describe('Validation Middleware', () => {
       mockRequest.body = {};
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -173,7 +172,7 @@ describe('Validation Middleware', () => {
       mockRequest.body = {};
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       const jsonCall = mockResponse.json.mock.calls[0][0];
       expect(jsonCall.details).toBeDefined();
@@ -191,7 +190,7 @@ describe('Validation Middleware', () => {
       mockRequest.body = {};
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       const jsonCall = mockResponse.json.mock.calls[0][0];
       expect(jsonCall.details.length).toBe(3);
@@ -204,7 +203,7 @@ describe('Validation Middleware', () => {
       mockRequest.body = { age: 'not a number' };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       const jsonCall = mockResponse.json.mock.calls[0][0];
       expect(jsonCall.details[0]).toContain('"age"');
@@ -214,10 +213,10 @@ describe('Validation Middleware', () => {
       const schema = Joi.object({
         name: Joi.string().min(5).max(10).required(),
       });
-      mockRequest.body = { name: 'abc' }; // too short
+      mockRequest.body = { name: 'abc' };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       const jsonCall = mockResponse.json.mock.calls[0][0];
@@ -228,10 +227,10 @@ describe('Validation Middleware', () => {
       const schema = Joi.object({
         count: Joi.number().min(1).max(100).required(),
       });
-      mockRequest.body = { count: 0 }; // less than min
+      mockRequest.body = { count: 0 };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
     });
@@ -243,7 +242,7 @@ describe('Validation Middleware', () => {
       mockRequest.body = {};
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(mockRequest.validatedBody).toBeUndefined();
     });
@@ -257,7 +256,7 @@ describe('Validation Middleware', () => {
       mockRequest.body = {};
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
     });
@@ -266,10 +265,10 @@ describe('Validation Middleware', () => {
       const schema = Joi.object({
         name: Joi.string().required(),
       });
-      mockRequest.body = null;
+      mockRequest.body = null as never;
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
     });
@@ -282,7 +281,7 @@ describe('Validation Middleware', () => {
       mockRequest.body = {};
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledTimes(1);
       expect(mockResponse.status).not.toHaveBeenCalled();
@@ -296,7 +295,7 @@ describe('Validation Middleware', () => {
       mockRequest.body = {};
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       const jsonCall = mockResponse.json.mock.calls[0][0];
@@ -314,10 +313,10 @@ describe('Validation Middleware', () => {
       };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledTimes(1);
-      expect(mockRequest.validatedBody.description).toBeNull();
+      expect(mockRequest.validatedBody!.description).toBeNull();
     });
 
     it('should handle boolean fields correctly', () => {
@@ -327,10 +326,10 @@ describe('Validation Middleware', () => {
       mockRequest.body = { isActive: false };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledTimes(1);
-      expect(mockRequest.validatedBody.isActive).toBe(false);
+      expect(mockRequest.validatedBody!.isActive).toBe(false);
     });
 
     it('should validate array fields', () => {
@@ -340,10 +339,10 @@ describe('Validation Middleware', () => {
       mockRequest.body = { items: ['item1', 'item2'] };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledTimes(1);
-      expect(mockRequest.validatedBody.items).toEqual(['item1', 'item2']);
+      expect(mockRequest.validatedBody!.items).toEqual(['item1', 'item2']);
     });
 
     it('should reject invalid array items', () => {
@@ -353,22 +352,9 @@ describe('Validation Middleware', () => {
       mockRequest.body = { items: [1, 2, 'invalid'] };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
-    });
-
-    it('should handle custom error messages if schema defines them', () => {
-      const schema = Joi.object({
-        name: Joi.string().required().messages({ 'any.required': 'Name is mandatory' }),
-      });
-      mockRequest.body = {};
-
-      const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
-
-      const jsonCall = mockResponse.json.mock.calls[0][0];
-      expect(jsonCall.details[0]).toContain('Name is mandatory');
     });
 
     it('should preserve the order of validatedBody fields', () => {
@@ -384,10 +370,23 @@ describe('Validation Middleware', () => {
       };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
-      const keys = Object.keys(mockRequest.validatedBody);
+      const keys = Object.keys(mockRequest.validatedBody!);
       expect(keys).toEqual(['first', 'second', 'third']);
+    });
+
+    it('should handle custom error messages if schema defines them', () => {
+      const schema = Joi.object({
+        name: Joi.string().required().messages({ 'any.required': 'Name is mandatory' }),
+      });
+      mockRequest.body = {};
+
+      const middleware = validate(schema);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
+
+      const jsonCall = mockResponse.json.mock.calls[0][0];
+      expect(jsonCall.details[0]).toContain('Name is mandatory');
     });
   });
 
@@ -404,11 +403,11 @@ describe('Validation Middleware', () => {
       };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledTimes(1);
-      expect(mockRequest.validatedBody.name).toBe('Test Routine');
-      expect(mockRequest.validatedBody.isActive).toBe(true);
+      expect(mockRequest.validatedBody!.name).toBe('Test Routine');
+      expect(mockRequest.validatedBody!.isActive).toBe(true);
     });
 
     it('should work with updateRoutineSchema structure', () => {
@@ -422,7 +421,7 @@ describe('Validation Middleware', () => {
       };
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledTimes(1);
     });
@@ -435,7 +434,7 @@ describe('Validation Middleware', () => {
       mockRequest.body = {};
 
       const middleware = validate(schema);
-      middleware(mockRequest, mockResponse, nextFunction);
+      middleware(mockRequest as never, mockResponse as never, nextFunction);
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
     });

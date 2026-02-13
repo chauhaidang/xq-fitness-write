@@ -1,47 +1,47 @@
-const Joi = require('joi');
+import Joi from 'joi';
 
-const createRoutineSchema = Joi.object({
+export const createRoutineSchema = Joi.object({
   name: Joi.string().min(1).max(200).required(),
   description: Joi.string().max(1000).allow(null, ''),
   isActive: Joi.boolean().default(true),
 });
 
-const updateRoutineSchema = Joi.object({
+export const updateRoutineSchema = Joi.object({
   name: Joi.string().min(1).max(200),
   description: Joi.string().max(1000).allow(null, ''),
   isActive: Joi.boolean(),
 }).min(1);
 
-const createWorkoutDaySchema = Joi.object({
+export const createWorkoutDaySchema = Joi.object({
   routineId: Joi.number().integer().positive().required(),
   dayNumber: Joi.number().integer().min(1).required(),
   dayName: Joi.string().min(1).max(100).required(),
   notes: Joi.string().max(1000).allow(null, ''),
 });
 
-const updateWorkoutDaySchema = Joi.object({
+export const updateWorkoutDaySchema = Joi.object({
   dayNumber: Joi.number().integer().min(1),
   dayName: Joi.string().min(1).max(100),
   notes: Joi.string().max(1000).allow(null, ''),
 }).min(1);
 
-const createWorkoutDaySetSchema = Joi.object({
+export const createWorkoutDaySetSchema = Joi.object({
   workoutDayId: Joi.number().integer().positive().required(),
   muscleGroupId: Joi.number().integer().positive().required(),
   numberOfSets: Joi.number().integer().min(1).required(),
   notes: Joi.string().max(1000).allow(null, ''),
 });
 
-const updateWorkoutDaySetSchema = Joi.object({
+export const updateWorkoutDaySetSchema = Joi.object({
   numberOfSets: Joi.number().integer().min(1),
   notes: Joi.string().max(1000).allow(null, ''),
 }).min(1);
 
-const createSnapshotSchema = Joi.object({
+export const createSnapshotSchema = Joi.object({
   routineId: Joi.number().integer().positive().required(),
 });
 
-const createExerciseSchema = Joi.object({
+export const createExerciseSchema = Joi.object({
   workoutDayId: Joi.number().integer().positive().required(),
   muscleGroupId: Joi.number().integer().positive().required(),
   exerciseName: Joi.string().min(1).max(200).required(),
@@ -51,22 +51,10 @@ const createExerciseSchema = Joi.object({
   notes: Joi.string().max(1000).allow(null, ''),
 });
 
-const updateExerciseSchema = Joi.object({
+export const updateExerciseSchema = Joi.object({
   exerciseName: Joi.string().min(1).max(200),
   totalReps: Joi.number().integer().min(0),
   weight: Joi.number().min(0),
   totalSets: Joi.number().integer().min(0),
   notes: Joi.string().max(1000).allow(null, ''),
 }).min(1);
-
-module.exports = {
-  createRoutineSchema,
-  updateRoutineSchema,
-  createWorkoutDaySchema,
-  updateWorkoutDaySchema,
-  createWorkoutDaySetSchema,
-  updateWorkoutDaySetSchema,
-  createSnapshotSchema,
-  createExerciseSchema,
-  updateExerciseSchema,
-};

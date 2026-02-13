@@ -28,8 +28,19 @@ describe('Component Test: Weekly Snapshot Creation', () => {
   }
 
   beforeAll(async () => {
-    // Initialize database helper
-    dbHelper = new DatabaseHelper();
+    // Initialize database helper with explicit config for component test environment.
+    // Use 127.0.0.1 (IPv4) and longer connectionTimeoutMillis to avoid timeouts
+    // when connecting from host to DB container (xq-infra exposes 5432).
+    const dbConfig = {
+      host: process.env.DB_HOST || '127.0.0.1',
+      port: parseInt(process.env.DB_PORT || '5432', 10),
+      database: process.env.DB_NAME || 'xq_fitness',
+      user: process.env.DB_USER || 'xq_user',
+      password: process.env.DB_PASSWORD || 'xq_password',
+      ssl: process.env.DB_SSL === 'true',
+      connectionTimeoutMillis: 10000,
+    };
+    dbHelper = new DatabaseHelper(dbConfig as any);
 
     // Connect to database
     await dbHelper.connect();
@@ -243,9 +254,7 @@ describe('Component Test: Weekly Snapshot Creation', () => {
     const routine = await apiClient.createRoutine(testData.generateRoutine('Snapshot With Exercise'));
     cleanup.trackRoutine(routine.id);
 
-    const workoutDay = await apiClient.createWorkoutDay(
-      testData.generateWorkoutDay(routine.id, 1, 'Push Day')
-    );
+    const workoutDay = await apiClient.createWorkoutDay(testData.generateWorkoutDay(routine.id, 1, 'Push Day'));
     cleanup.trackWorkoutDay(workoutDay.id);
 
     const chestSets = await apiClient.createWorkoutDaySets(
@@ -254,26 +263,12 @@ describe('Component Test: Weekly Snapshot Creation', () => {
     cleanup.trackWorkoutDaySets(chestSets.id);
 
     const exercise1 = await apiClient.createExercise(
-      testData.generateExercise(
-        workoutDay.id,
-        testData.muscleGroups.CHEST,
-        'Bench Press',
-        30,
-        135,
-        3
-      )
+      testData.generateExercise(workoutDay.id, testData.muscleGroups.CHEST, 'Bench Press', 30, 135, 3)
     );
     cleanup.trackExercise(exercise1.id);
 
     const exercise2 = await apiClient.createExercise(
-      testData.generateExercise(
-        workoutDay.id,
-        testData.muscleGroups.SHOULDERS,
-        'Overhead Press',
-        24,
-        95,
-        3
-      )
+      testData.generateExercise(workoutDay.id, testData.muscleGroups.SHOULDERS, 'Overhead Press', 24, 95, 3)
     );
     cleanup.trackExercise(exercise2.id);
 
@@ -289,17 +284,12 @@ describe('Component Test: Weekly Snapshot Creation', () => {
     expect(snapshot.createdAt).toBeDefined();
 
     // Verify snapshot record in database
-    const snapshotRecord = await query('SELECT * FROM weekly_snapshots WHERE id = $1', [
-      snapshot.id,
-    ]);
+    const snapshotRecord = await query('SELECT * FROM weekly_snapshots WHERE id = $1', [snapshot.id]);
     expect(snapshotRecord.rows.length).toBe(1);
     expect(snapshotRecord.rows[0].routine_id).toBe(routine.id);
 
     // Verify snapshot workout days exist
-    const snapshotDays = await query(
-      'SELECT * FROM snapshot_workout_days WHERE snapshot_id = $1',
-      [snapshot.id]
-    );
+    const snapshotDays = await query('SELECT * FROM snapshot_workout_days WHERE snapshot_id = $1', [snapshot.id]);
     expect(snapshotDays.rows.length).toBe(1);
     expect(snapshotDays.rows[0].original_workout_day_id).toBe(workoutDay.id);
 
@@ -321,14 +311,10 @@ describe('Component Test: Weekly Snapshot Creation', () => {
       [snapshot.id]
     );
     expect(snapshotExercises.rows.length).toBe(2);
-    const exerciseNames = snapshotExercises.rows.map(
-      (r: { exercise_name: string }) => r.exercise_name
-    );
+    const exerciseNames = snapshotExercises.rows.map((r: { exercise_name: string }) => r.exercise_name);
     expect(exerciseNames).toContain('Bench Press');
     expect(exerciseNames).toContain('Overhead Press');
-    const benchRow = snapshotExercises.rows.find(
-      (r: { exercise_name: string }) => r.exercise_name === 'Bench Press'
-    );
+    const benchRow = snapshotExercises.rows.find((r: { exercise_name: string }) => r.exercise_name === 'Bench Press');
     const overheadRow = snapshotExercises.rows.find(
       (r: { exercise_name: string }) => r.exercise_name === 'Overhead Press'
     );
@@ -346,10 +332,9 @@ describe('Component Test: Weekly Snapshot Creation', () => {
     expect(overheadRow?.muscle_group_id).toBe(testData.muscleGroups.SHOULDERS);
 
     // Exercises remain in exercises table
-    const exercisesAfter = await query(
-      'SELECT id, exercise_name FROM exercises WHERE workout_day_id = $1',
-      [workoutDay.id]
-    );
+    const exercisesAfter = await query('SELECT id, exercise_name FROM exercises WHERE workout_day_id = $1', [
+      workoutDay.id,
+    ]);
     expect(exercisesAfter.rows.length).toBe(2);
 
     logger.info('✅ Snapshot created successfully when routine has exercise data');
@@ -385,7 +370,11 @@ describe('Component Test: Weekly Snapshot Creation', () => {
       [snapshot.id]
     );
     expect(snapshotExercises.rows.length).toBe(2);
-    expect(snapshotExercises.rows.every((r: { muscle_group_id: number }) => r.muscle_group_id === testData.muscleGroups.CHEST)).toBe(true);
+    expect(
+      snapshotExercises.rows.every(
+        (r: { muscle_group_id: number }) => r.muscle_group_id === testData.muscleGroups.CHEST
+      )
+    ).toBe(true);
     const names = snapshotExercises.rows.map((r: { exercise_name: string }) => r.exercise_name);
     expect(names).toContain('Bench Press');
     expect(names).toContain('Incline Dumbbell Press');
@@ -424,13 +413,16 @@ describe('Component Test: Weekly Snapshot Creation', () => {
 
     expect(snapshot).toBeDefined();
 
-    const snapshotDays = await query(
-      'SELECT * FROM snapshot_workout_days WHERE snapshot_id = $1 ORDER BY day_number',
-      [snapshot.id]
-    );
+    const snapshotDays = await query('SELECT * FROM snapshot_workout_days WHERE snapshot_id = $1 ORDER BY day_number', [
+      snapshot.id,
+    ]);
     expect(snapshotDays.rows.length).toBe(2);
-    const snapDay1Id = snapshotDays.rows.find((r: { original_workout_day_id: number }) => r.original_workout_day_id === day1.id)?.id;
-    const snapDay2Id = snapshotDays.rows.find((r: { original_workout_day_id: number }) => r.original_workout_day_id === day2.id)?.id;
+    const snapDay1Id = snapshotDays.rows.find(
+      (r: { original_workout_day_id: number }) => r.original_workout_day_id === day1.id
+    )?.id;
+    const snapDay2Id = snapshotDays.rows.find(
+      (r: { original_workout_day_id: number }) => r.original_workout_day_id === day2.id
+    )?.id;
     expect(snapDay1Id).toBeDefined();
     expect(snapDay2Id).toBeDefined();
 
@@ -443,13 +435,23 @@ describe('Component Test: Weekly Snapshot Creation', () => {
     );
     expect(snapshotExercises.rows.length).toBe(4);
 
-    const day1Exercises = snapshotExercises.rows.filter((r: { original_workout_day_id: number }) => r.original_workout_day_id === day1.id);
-    const day2Exercises = snapshotExercises.rows.filter((r: { original_workout_day_id: number }) => r.original_workout_day_id === day2.id);
+    const day1Exercises = snapshotExercises.rows.filter(
+      (r: { original_workout_day_id: number }) => r.original_workout_day_id === day1.id
+    );
+    const day2Exercises = snapshotExercises.rows.filter(
+      (r: { original_workout_day_id: number }) => r.original_workout_day_id === day2.id
+    );
     expect(day1Exercises.length).toBe(2);
     expect(day2Exercises.length).toBe(2);
 
-    expect(day1Exercises.map((r: { exercise_name: string }) => r.exercise_name).sort()).toEqual(['Bench Press', 'Overhead Press']);
-    expect(day2Exercises.map((r: { exercise_name: string }) => r.exercise_name).sort()).toEqual(['Cable Flyes', 'Rows']);
+    expect(day1Exercises.map((r: { exercise_name: string }) => r.exercise_name).sort()).toEqual([
+      'Bench Press',
+      'Overhead Press',
+    ]);
+    expect(day2Exercises.map((r: { exercise_name: string }) => r.exercise_name).sort()).toEqual([
+      'Cable Flyes',
+      'Rows',
+    ]);
 
     logger.info('✅ Snapshot with two workout days, each with exercises (same muscle group CHEST on both days)');
   });

@@ -1,4 +1,7 @@
-const validate = (schema) => {
+import type { RequestHandler } from 'express';
+import type { Schema } from 'joi';
+
+export const validate = (schema: Schema): RequestHandler => {
   return (req, res, next) => {
     const { error, value } = schema.validate(req.body, { abortEarly: false, stripUnknown: true });
 
@@ -12,9 +15,7 @@ const validate = (schema) => {
       });
     }
 
-    req.validatedBody = value;
-    next();
+    req.validatedBody = value as Record<string, unknown>;
+    return next();
   };
 };
-
-module.exports = validate;

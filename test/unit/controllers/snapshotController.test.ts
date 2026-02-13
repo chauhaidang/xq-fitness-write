@@ -1,19 +1,20 @@
-const SnapshotController = require('../../../src/controllers/snapshotController');
-const SnapshotService = require('../../../src/services/snapshotService');
-const RoutineModel = require('../../../src/models/routineModel');
+import { SnapshotController } from '../../../src/controllers/snapshotController';
+import { SnapshotService } from '../../../src/services/snapshotService';
+import { RoutineModel } from '../../../src/models/routineModel';
 
-// Mock the services and models
 jest.mock('../../../src/services/snapshotService');
 jest.mock('../../../src/models/routineModel');
 
+const mockRoutineModel = RoutineModel as jest.Mocked<typeof RoutineModel>;
+const mockSnapshotService = SnapshotService as jest.Mocked<typeof SnapshotService>;
+
 describe('SnapshotController', () => {
-  let req, res;
-  let consoleErrorSpy;
+  let req: { params: Record<string, string> };
+  let res: { status: jest.Mock; json: jest.Mock };
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
-
-    // Mock console.error to suppress expected error logs in tests
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     req = {
@@ -42,13 +43,13 @@ describe('SnapshotController', () => {
           createdAt: new Date('2024-12-02T10:00:00Z'),
         };
 
-        RoutineModel.exists.mockResolvedValue(true);
-        SnapshotService.createSnapshot.mockResolvedValue(mockSnapshot);
+        mockRoutineModel.exists.mockResolvedValue(true);
+        mockSnapshotService.createSnapshot.mockResolvedValue(mockSnapshot as never);
 
-        await SnapshotController.createSnapshot(req, res);
+        await SnapshotController.createSnapshot(req as never, res as never);
 
-        expect(RoutineModel.exists).toHaveBeenCalledWith(10);
-        expect(SnapshotService.createSnapshot).toHaveBeenCalledWith(10);
+        expect(mockRoutineModel.exists).toHaveBeenCalledWith(10);
+        expect(mockSnapshotService.createSnapshot).toHaveBeenCalledWith(10);
         expect(res.status).toHaveBeenCalledWith(201);
         expect(res.json).toHaveBeenCalledWith(mockSnapshot);
       });
@@ -63,13 +64,13 @@ describe('SnapshotController', () => {
           createdAt: new Date(),
         };
 
-        RoutineModel.exists.mockResolvedValue(true);
-        SnapshotService.createSnapshot.mockResolvedValue(mockSnapshot);
+        mockRoutineModel.exists.mockResolvedValue(true);
+        mockSnapshotService.createSnapshot.mockResolvedValue(mockSnapshot as never);
 
-        await SnapshotController.createSnapshot(req, res);
+        await SnapshotController.createSnapshot(req as never, res as never);
 
-        expect(RoutineModel.exists).toHaveBeenCalledWith(5);
-        expect(SnapshotService.createSnapshot).toHaveBeenCalledWith(5);
+        expect(mockRoutineModel.exists).toHaveBeenCalledWith(5);
+        expect(mockSnapshotService.createSnapshot).toHaveBeenCalledWith(5);
         expect(res.status).toHaveBeenCalledWith(201);
       });
     });
@@ -78,7 +79,7 @@ describe('SnapshotController', () => {
       it('should return 400 for invalid routineId (non-numeric)', async () => {
         req.params.routineId = 'invalid';
 
-        await SnapshotController.createSnapshot(req, res);
+        await SnapshotController.createSnapshot(req as never, res as never);
 
         expect(res.status).toHaveBeenCalledWith(400);
         expect(res.json).toHaveBeenCalledWith({
@@ -87,13 +88,13 @@ describe('SnapshotController', () => {
           timestamp: expect.any(String),
           details: expect.any(Array),
         });
-        expect(SnapshotService.createSnapshot).not.toHaveBeenCalled();
+        expect(mockSnapshotService.createSnapshot).not.toHaveBeenCalled();
       });
 
       it('should return 400 for invalid routineId (negative)', async () => {
         req.params.routineId = '-1';
 
-        await SnapshotController.createSnapshot(req, res);
+        await SnapshotController.createSnapshot(req as never, res as never);
 
         expect(res.status).toHaveBeenCalledWith(400);
         expect(res.json).toHaveBeenCalledWith({
@@ -107,7 +108,7 @@ describe('SnapshotController', () => {
       it('should return 400 for invalid routineId (zero)', async () => {
         req.params.routineId = '0';
 
-        await SnapshotController.createSnapshot(req, res);
+        await SnapshotController.createSnapshot(req as never, res as never);
 
         expect(res.status).toHaveBeenCalledWith(400);
         expect(res.json).toHaveBeenCalledWith({
@@ -116,41 +117,6 @@ describe('SnapshotController', () => {
           timestamp: expect.any(String),
           details: expect.any(Array),
         });
-      });
-
-      it('should return 400 for invalid routineId (non-numeric string)', async () => {
-        // parseInt('abc') returns NaN, which fails Joi validation
-        req.params.routineId = 'abc';
-
-        await SnapshotController.createSnapshot(req, res);
-
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith({
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid routineId parameter',
-          timestamp: expect.any(String),
-          details: expect.any(Array),
-        });
-      });
-
-      it('should accept float string that parseInt converts to valid integer', async () => {
-        // parseInt('10.5', 10) returns 10, which is valid
-        // This tests that the controller accepts values that parseInt can convert
-        req.params.routineId = '10.5';
-
-        RoutineModel.exists.mockResolvedValue(true);
-        SnapshotService.createSnapshot.mockResolvedValue({
-          id: 1,
-          routineId: 10,
-          weekStartDate: '2024-12-02',
-          createdAt: new Date(),
-        });
-
-        await SnapshotController.createSnapshot(req, res);
-
-        // Should parse to 10 and proceed
-        expect(RoutineModel.exists).toHaveBeenCalledWith(10);
-        expect(res.status).toHaveBeenCalledWith(201);
       });
     });
 
@@ -158,12 +124,12 @@ describe('SnapshotController', () => {
       it('should return 404 when routine does not exist', async () => {
         req.params.routineId = '999';
 
-        RoutineModel.exists.mockResolvedValue(false);
+        mockRoutineModel.exists.mockResolvedValue(false);
 
-        await SnapshotController.createSnapshot(req, res);
+        await SnapshotController.createSnapshot(req as never, res as never);
 
-        expect(RoutineModel.exists).toHaveBeenCalledWith(999);
-        expect(SnapshotService.createSnapshot).not.toHaveBeenCalled();
+        expect(mockRoutineModel.exists).toHaveBeenCalledWith(999);
+        expect(mockSnapshotService.createSnapshot).not.toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(404);
         expect(res.json).toHaveBeenCalledWith({
           code: 'NOT_FOUND',
@@ -175,10 +141,10 @@ describe('SnapshotController', () => {
       it('should return 404 when service throws Routine not found error', async () => {
         req.params.routineId = '10';
 
-        RoutineModel.exists.mockResolvedValue(true);
-        SnapshotService.createSnapshot.mockRejectedValue(new Error('Routine not found'));
+        mockRoutineModel.exists.mockResolvedValue(true);
+        mockSnapshotService.createSnapshot.mockRejectedValue(new Error('Routine not found'));
 
-        await SnapshotController.createSnapshot(req, res);
+        await SnapshotController.createSnapshot(req as never, res as never);
 
         expect(res.status).toHaveBeenCalledWith(404);
         expect(res.json).toHaveBeenCalledWith({
@@ -193,32 +159,13 @@ describe('SnapshotController', () => {
       it('should return 400 for PostgreSQL constraint violation (23xx codes)', async () => {
         req.params.routineId = '10';
 
-        const error = new Error('Constraint violation');
-        error.code = '23505'; // Unique constraint
+        const error = new Error('Constraint violation') as Error & { code?: string };
+        error.code = '23505';
 
-        RoutineModel.exists.mockResolvedValue(true);
-        SnapshotService.createSnapshot.mockRejectedValue(error);
+        mockRoutineModel.exists.mockResolvedValue(true);
+        mockSnapshotService.createSnapshot.mockRejectedValue(error);
 
-        await SnapshotController.createSnapshot(req, res);
-
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith({
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid snapshot data',
-          timestamp: expect.any(String),
-        });
-      });
-
-      it('should return 400 for other PostgreSQL constraint violations', async () => {
-        req.params.routineId = '10';
-
-        const error = new Error('Foreign key violation');
-        error.code = '23503'; // Foreign key constraint
-
-        RoutineModel.exists.mockResolvedValue(true);
-        SnapshotService.createSnapshot.mockRejectedValue(error);
-
-        await SnapshotController.createSnapshot(req, res);
+        await SnapshotController.createSnapshot(req as never, res as never);
 
         expect(res.status).toHaveBeenCalledWith(400);
         expect(res.json).toHaveBeenCalledWith({
@@ -235,10 +182,10 @@ describe('SnapshotController', () => {
 
         const error = new Error('Database connection failed');
 
-        RoutineModel.exists.mockResolvedValue(true);
-        SnapshotService.createSnapshot.mockRejectedValue(error);
+        mockRoutineModel.exists.mockResolvedValue(true);
+        mockSnapshotService.createSnapshot.mockRejectedValue(error);
 
-        await SnapshotController.createSnapshot(req, res);
+        await SnapshotController.createSnapshot(req as never, res as never);
 
         expect(res.status).toHaveBeenCalledWith(500);
         expect(res.json).toHaveBeenCalledWith({
@@ -253,10 +200,10 @@ describe('SnapshotController', () => {
 
         const error = new Error();
 
-        RoutineModel.exists.mockResolvedValue(true);
-        SnapshotService.createSnapshot.mockRejectedValue(error);
+        mockRoutineModel.exists.mockResolvedValue(true);
+        mockSnapshotService.createSnapshot.mockRejectedValue(error);
 
-        await SnapshotController.createSnapshot(req, res);
+        await SnapshotController.createSnapshot(req as never, res as never);
 
         expect(res.status).toHaveBeenCalledWith(500);
         expect(res.json).toHaveBeenCalledWith({

@@ -6,6 +6,13 @@
 import { waitForService } from '@chauhaidang/xq-test-utils';
 import { logger } from '@chauhaidang/xq-common-kit';
 
+// Force local DB for component tests (override .env - xq-infra exposes DB on localhost:5432)
+process.env.DB_HOST = '127.0.0.1';
+process.env.DB_PORT = '5432';
+process.env.DB_NAME = 'xq_fitness';
+process.env.DB_USER = 'xq_user';
+process.env.DB_PASSWORD = 'xq_password';
+
 // Get base URL from environment or use default (test-env gateway entry point)
 const BASE_URL = process.env.API_BASE_URL || 'http://localhost:8080/xq-fitness-write-service/api/v1';
 const HEALTH_CHECK_URL = process.env.HEALTH_CHECK_URL || 'http://localhost:8080/xq-fitness-write-service/health';

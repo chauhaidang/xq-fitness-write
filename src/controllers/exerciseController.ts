@@ -1,106 +1,120 @@
-const ExerciseService = require('../services/exerciseService');
+import type { Request, Response } from 'express';
+import { ExerciseService } from '../services/exerciseService';
+import { getParam } from '../utils/params';
 
-class ExerciseController {
-  static async createExercise(req, res) {
+interface DbError extends Error {
+  code?: string;
+}
+
+export class ExerciseController {
+  static async createExercise(req: Request, res: Response): Promise<void> {
     try {
-      const exercise = await ExerciseService.create(req.validatedBody);
+      const exercise = await ExerciseService.create(req.validatedBody as Parameters<typeof ExerciseService.create>[0]);
       res.status(201).json(exercise);
     } catch (error) {
-      if (error.message === 'Workout day not found') {
-        return res.status(404).json({
+      const err = error as DbError;
+      if (err.message === 'Workout day not found') {
+        res.status(404).json({
           code: 'NOT_FOUND',
           message: 'Workout day not found',
           timestamp: new Date().toISOString(),
         });
+        return;
       }
-      if (error.code === '23503') {
-        return res.status(404).json({
+      if (err.code === '23503') {
+        res.status(404).json({
           code: 'NOT_FOUND',
           message: 'Workout day or muscle group not found',
           timestamp: new Date().toISOString(),
         });
+        return;
       }
       console.error('Error creating exercise:', error);
       res.status(500).json({
         code: 'INTERNAL_ERROR',
-        message: error.message,
+        message: err.message,
         timestamp: new Date().toISOString(),
       });
     }
   }
 
-  static async getExercise(req, res) {
+  static async getExercise(req: Request, res: Response): Promise<void> {
     try {
-      const { exerciseId } = req.params;
+      const exerciseId = getParam(req, 'exerciseId');
       const exercise = await ExerciseService.getById(parseInt(exerciseId, 10));
       res.status(200).json(exercise);
     } catch (error) {
-      if (error.message === 'Exercise not found') {
-        return res.status(404).json({
+      const err = error as Error;
+      if (err.message === 'Exercise not found') {
+        res.status(404).json({
           code: 'NOT_FOUND',
           message: 'Exercise not found',
           timestamp: new Date().toISOString(),
         });
+        return;
       }
       console.error('Error getting exercise:', error);
       res.status(500).json({
         code: 'INTERNAL_ERROR',
-        message: error.message,
+        message: err.message,
         timestamp: new Date().toISOString(),
       });
     }
   }
 
-  static async updateExercise(req, res) {
+  static async updateExercise(req: Request, res: Response): Promise<void> {
     try {
-      const { exerciseId } = req.params;
-      const exercise = await ExerciseService.update(parseInt(exerciseId, 10), req.validatedBody);
+      const exerciseId = getParam(req, 'exerciseId');
+      const exercise = await ExerciseService.update(parseInt(exerciseId, 10), req.validatedBody as Parameters<typeof ExerciseService.update>[1]);
       res.status(200).json(exercise);
     } catch (error) {
-      if (error.message === 'Exercise not found') {
-        return res.status(404).json({
+      const err = error as Error;
+      if (err.message === 'Exercise not found') {
+        res.status(404).json({
           code: 'NOT_FOUND',
           message: 'Exercise not found',
           timestamp: new Date().toISOString(),
         });
+        return;
       }
-      if (error.message === 'No fields to update') {
-        return res.status(400).json({
+      if (err.message === 'No fields to update') {
+        res.status(400).json({
           code: 'VALIDATION_ERROR',
           message: 'At least one field must be provided for update',
           timestamp: new Date().toISOString(),
         });
+        return;
       }
       console.error('Error updating exercise:', error);
       res.status(500).json({
         code: 'INTERNAL_ERROR',
-        message: error.message,
+        message: err.message,
         timestamp: new Date().toISOString(),
       });
     }
   }
 
-  static async deleteExercise(req, res) {
+  static async deleteExercise(req: Request, res: Response): Promise<void> {
     try {
-      const { exerciseId } = req.params;
+      const exerciseId = getParam(req, 'exerciseId');
       await ExerciseService.delete(parseInt(exerciseId, 10));
       res.status(204).send();
     } catch (error) {
-      if (error.message === 'Exercise not found') {
-        return res.status(404).json({
+      const err = error as Error;
+      if (err.message === 'Exercise not found') {
+        res.status(404).json({
           code: 'NOT_FOUND',
           message: 'Exercise not found',
           timestamp: new Date().toISOString(),
         });
+        return;
       }
       console.error('Error deleting exercise:', error);
       res.status(500).json({
         code: 'INTERNAL_ERROR',
-        message: error.message,
+        message: err.message,
         timestamp: new Date().toISOString(),
       });
     }
   }
 }
-
-module.exports = ExerciseController;
