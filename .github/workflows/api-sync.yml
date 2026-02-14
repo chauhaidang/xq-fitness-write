@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'write-service-api.yaml'
+      - 'api/write-service-api.yaml'
   workflow_dispatch:
 
 
@@ -36,7 +36,7 @@ jobs:
 
             if [ "$current_version" != "$previous_version" ]; then
               echo "version_changed=true" >> $GITHUB_OUTPUT
-              echo "Version changed from $previous_version to $current_vers ion"
+              echo "Version changed from $previous_version to $current_version"
             else
               echo "version_changed=false" >> $GITHUB_OUTPUT
               echo "Version unchanged"
