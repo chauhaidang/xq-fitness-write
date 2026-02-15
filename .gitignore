@@ -12,3 +12,4 @@ coverage
 tsr/
 dist/
 .DS_Store
+scripts/
