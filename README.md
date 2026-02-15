@@ -6,6 +6,8 @@ Node.js service for creating, updating, and deleting workout data.
 
 [![Sync API Definition to xq-apis](https://github.com/chauhaidang/xq-fitness-write/actions/workflows/api-sync.yml/badge.svg)](https://github.com/chauhaidang/xq-fitness-write/actions/workflows/api-sync.yml)
 
+### [Test summary report](https://chauhaidang.github.io/xq-fitness-write/)
+
 ## Prerequisites
 
 - Node.js 18+ and npm
