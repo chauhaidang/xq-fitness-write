@@ -12,13 +12,14 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD || 'xq_password',
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000,
   ssl: process.env.DB_SSL !== 'false' ? { rejectUnauthorized: false } : false,
 });
 
 pool.on('error', (err: Error) => {
   console.error('Unexpected error on idle client', err);
-  process.exit(-1);
+  // Do not exit the process — let the health check remain reachable
+  // The pool will automatically attempt to reconnect on the next query
 });
 
 export const query = (text: string, params?: unknown[]) => pool.query(text, params);

@@ -48,5 +48,6 @@ services:
         value: "true"
     health_check:
       http_path: /health
-      initial_delay_seconds: 30
+      initial_delay_seconds: 60
+      timeout_seconds: 10
 
