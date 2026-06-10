@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'src/**'
+      - '.do/**'
       - 'package.json'
       - 'Dockerfile'
       - '.github/workflows/ci.yml'
