@@ -10,18 +10,22 @@ Node.js service for creating, updating, and deleting workout data.
 
 ## Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 20 with Corepack
 - PostgreSQL 12+
-- Docker (optional, for containerized deployment)
+- Docker with BuildKit (optional, for containerized deployment)
+- A `GITHUB_TOKEN` with read access to the private `@chauhaidang` packages
 
 ## Quick Start
 
 ### Local Development
 
-1. Install dependencies:
+1. Enable the pinned Yarn version, generate the local API client, and install dependencies:
 
 ```bash
-npm install
+export GITHUB_TOKEN=<github-packages-read-token>
+corepack enable
+./scripts/generate-api-client.sh write-service
+yarn install --immutable
 ```
 
 2. Create environment file:
@@ -38,10 +42,10 @@ cp .env.example .env
 
 ```bash
 # Development mode with auto-reload
-npm run dev
+yarn dev
 
 # Production mode
-npm start
+yarn start
 ```
 
 The service will start on port 3000 (or the port specified in `.env`).
@@ -78,7 +82,8 @@ docker run -d \
 #### Building Docker Image Locally
 
 ```bash
-docker build -t xq-fitness-write-service:latest .
+export GITHUB_TOKEN=<github-packages-read-token>
+./build-write-service.sh
 docker run -d \
   --name xq-write-service \
   -p 3000:3000 \
@@ -139,8 +144,8 @@ docker pull ghcr.io/chauhaidang/xq-fitness-write-service:main-abc1234f
 
 ### GitHub Actions Workflow
 
-See `.github/workflows/publish.yml` for the automatic publishing configuration.
+See `.github/workflows/ci.yml` for the build, test, publish, and deploy workflow.
 
 ## API Documentation
 
-See the OpenAPI specification at `./write-service-api.yaml`
+See the OpenAPI specification at `./api/write-service-api.yaml`.

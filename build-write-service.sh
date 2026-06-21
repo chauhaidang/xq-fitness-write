@@ -39,7 +39,15 @@ fi
 
 echo "${YELLOW}Building image: ${IMAGE_NAME}${NC}"
 
-docker build --build-arg GITHUB_TOKEN="${GITHUB_TOKEN}" -t "$IMAGE_NAME" "$SERVICE_DIR"
+if [ -z "${GITHUB_TOKEN:-}" ]; then
+    echo "${RED}Error: GITHUB_TOKEN is required to install private packages${NC}"
+    exit 1
+fi
+
+DOCKER_BUILDKIT=1 docker build \
+    --secret id=GITHUB_TOKEN,env=GITHUB_TOKEN \
+    -t "$IMAGE_NAME" \
+    "$SERVICE_DIR"
 
 if [ $? -eq 0 ]; then
     echo "${GREEN}Successfully built ${IMAGE_NAME}${NC}"

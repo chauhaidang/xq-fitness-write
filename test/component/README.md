@@ -2,7 +2,7 @@
 
 Component tests for XQ Fitness Write Service using **Jest** + **TypeScript** + **Generated API Client**.
 
-Tests are managed from the root package.json with centralized dependencies and configuration.
+Tests are managed from `write-service/package.json` and run inside the service directory.
 
 ---
 
@@ -10,9 +10,10 @@ Tests are managed from the root package.json with centralized dependencies and c
 
 ### Prerequisites
 
-- **Node.js 18+**, **npm 8+**
-- **Docker** (for building the service image and running test-env)
-- **xq-infra** (xq-cli): `npm install -g @chauhaidang/xq-test-infra@1.0.3`
+- **Node.js 20** with **Corepack**
+- **Docker with BuildKit** (for building the service image and running test-env)
+- `GITHUB_TOKEN` with read access to private `@chauhaidang` packages
+- **xq-infra** (xq-cli): `npm install -g @chauhaidang/xq-test-infra@1.0.3` (external global tooling intentionally remains npm-managed)
 
 ### Recommended: Run with xq-infra (matches CI and project component-test rule)
 
@@ -21,20 +22,23 @@ This is the standard workflow. Use the existing build script and **test-env** in
 ```bash
 # From write-service root:
 
+export GITHUB_TOKEN=<github-packages-read-token>
+corepack enable
+
 # 1. Build the write-service container image
 ./build-write-service.sh
 
 # 2. Generate API client and install dependencies
-npm run generate:client
-npm install
+./scripts/generate-api-client.sh write-service
+yarn install --immutable
 
 # 3. Start test environment (DB + write-service containers)
 xq-infra generate -f ./test-env
 xq-infra up
 
 # 4. Run component tests
-npm run test:component:ci
-# or: npm run test:component
+yarn test:component:ci
+# or: yarn test:component
 
 # 5. When done, tear down
 xq-infra down
@@ -46,11 +50,11 @@ See also the project component-test rule: `.cursor/rules/component-test.mdc` (an
 
 ### Alternative: Run service and DB manually
 
-If you prefer to run the service with `npm start` and your own PostgreSQL:
+If you prefer to run the service with `yarn start` and your own PostgreSQL:
 
 - **PostgreSQL**: database `xq_fitness`, user `xq_user`, password `xq_password` (or set `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`).
-- **Write service**: `cp .env.example .env`, then `npm start` (port 3000).
-- **Tests**: set env and run, e.g. `API_BASE_URL=http://localhost:3000/api/v1 HEALTH_CHECK_URL=http://localhost:3000/health npm run test:component`.
+- **Write service**: `cp .env.example .env`, then `yarn start` (port 3000).
+- **Tests**: set env and run, e.g. `API_BASE_URL=http://localhost:3000/api/v1 HEALTH_CHECK_URL=http://localhost:3000/health yarn test:component`.
 
 ---
 
@@ -58,11 +62,11 @@ If you prefer to run the service with `npm start` and your own PostgreSQL:
 
 ```bash
 # From write-service root:
-npm run test:component          # Run all component tests
-npm run test:component:watch    # Watch mode for development
-npm run test:component:ci       # Run with CI reporters (JUnit XML)
-npm run format                  # Format all code with Prettier
-npm run lint                    # Lint all code with ESLint
+yarn test:component          # Run all component tests
+yarn test:component:watch    # Watch mode for development
+yarn test:component:ci       # Run with CI reporters (JUnit XML)
+yarn format                  # Format all code with Prettier
+yarn lint                    # Lint all code with ESLint
 ```
 
 ---
@@ -107,15 +111,15 @@ write-service/                   # Root directory
 
 ```bash
 # Run tests against test-env gateway (default)
-npm run test:component
+yarn test:component
 
 # Override for e.g. direct service (no gateway)
-API_BASE_URL=http://localhost:3000/api/v1 HEALTH_CHECK_URL=http://localhost:3000/health npm run test:component
+API_BASE_URL=http://localhost:3000/api/v1 HEALTH_CHECK_URL=http://localhost:3000/health yarn test:component
 
 # Run tests via nginx gateway
 API_BASE_URL=http://localhost/xq-fitness-write-service/api/v1 \
 HEALTH_CHECK_URL=http://localhost/xq-fitness-write-service/health \
-npm test
+yarn test
 ```
 
 ---
@@ -129,9 +133,8 @@ npm test
 
 import { testData } from '../helpers/test-data';
 import { ApiClient } from '../helpers/api-client';
-import { Logger } from '@chauhaidang/xq-common-kit';
+import { logger } from '@chauhaidang/xq-harness-common-kit';
 
-const logger = new Logger('MyWorkflow');
 const apiClient = new ApiClient(process.env.API_BASE_URL || 'http://localhost:3000/api/v1');
 
 describe('E2E: My Workflow', () => {
@@ -214,7 +217,7 @@ Test results are printed to console with colored output.
 
 ### CI/CD
 
-- **JUnit XML**: `./test-reports/e2e-workflows-junit.xml`
+- **JUnit XML**: `./test/component/tsr/junit.xml`
 - Uploaded as GitHub Actions artifact
 - Available for 7 days after workflow run
 
@@ -230,10 +233,10 @@ Add to `.vscode/launch.json`:
 {
   "type": "node",
   "request": "launch",
-  "name": "Debug E2E Tests",
-  "program": "${workspaceFolder}/e2e/node_modules/.bin/jest",
-  "args": ["--runInBand", "--no-cache", "--watchAll=false"],
-  "cwd": "${workspaceFolder}/e2e",
+  "name": "Debug Write-Service Component Tests",
+  "program": "${workspaceFolder}/write-service/node_modules/.bin/jest",
+  "args": ["--config", "jest.config.component.js", "--runInBand", "--no-cache", "--watchAll=false"],
+  "cwd": "${workspaceFolder}/write-service",
   "console": "integratedTerminal",
   "internalConsoleOptions": "neverOpen"
 }
@@ -242,7 +245,7 @@ Add to `.vscode/launch.json`:
 ### Command Line Debugging
 
 ```bash
-npm run test:debug
+node --inspect-brk ./node_modules/.bin/jest --config jest.config.component.js --runInBand
 ```
 
 Then attach your debugger to the Node process.
@@ -253,20 +256,17 @@ Then attach your debugger to the Node process.
 
 | Issue                  | Solution                                        |
 | ---------------------- | ----------------------------------------------- |
-| "Cannot find module"   | Run `npm install` in `e2e/` directory           |
+| "Cannot find module"   | Generate the client, then run `yarn install --immutable` in `write-service/` |
 | "API server not ready" | Ensure API server is running on port 3000       |
 | "Connection refused"   | Check `API_BASE_URL` environment variable       |
-| "Tests timeout"        | Increase timeout in `jest.config.ts`            |
+| "Tests timeout"        | Increase timeout in `jest.config.component.js`  |
 | TypeScript errors      | Run `npx tsc --noEmit` to check for type errors |
 
 ---
 
 ## CI/CD Integration
 
-Tests run automatically on:
-
-- Push to `main` or `develop` branches
-- Pull requests to `main` or `develop`
+Tests run automatically on pushes to `main`, pull requests to `main`, and manual workflow dispatches.
 
 See `write-service/.github/workflows/ci.yml` for workflow configuration.
 
@@ -277,7 +277,7 @@ See `write-service/.github/workflows/ci.yml` for workflow configuration.
 1. **Test Isolation**: Each test should be independent
 2. **Cleanup**: Always clean up test data in `afterEach` or `afterAll`
 3. **Unique Data**: Use `testData.generateRoutine()` for unique names
-4. **Logging**: Use logger from `@chauhaidang/xq-common-kit`
+4. **Logging**: Use logger from `@chauhaidang/xq-harness-common-kit`
 5. **Assertions**: Verify all critical workflow steps
 6. **Error Handling**: Handle expected failures gracefully
 
@@ -290,7 +290,7 @@ See `write-service/.github/workflows/ci.yml` for workflow configuration.
 - **TypeScript 5.5+** - Type safety
 - **ts-jest 29.2+** - TypeScript compilation
 - **wait-on 8.0+** - Service health checks
-- **@chauhaidang/xq-common-kit** - Internal logging utilities
+- **@chauhaidang/xq-harness-common-kit** - Internal logging utilities
 
 ---
 
@@ -312,5 +312,5 @@ Helper utilities are shared across all tests. Update carefully and test thorough
 
 **Status**: ✅ Ready to Use
 **Framework**: Jest + PactumJS + TypeScript
-**Node**: 18+
-**Last Updated**: 2025-11-15
+**Node**: 20+
+**Last Updated**: 2026-06-21

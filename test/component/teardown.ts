@@ -4,7 +4,7 @@
  */
 
 import { generateTestReport } from '@chauhaidang/xq-test-utils';
-import { logger } from '@chauhaidang/xq-common-kit';
+import { logger } from '@chauhaidang/xq-harness-common-kit';
 
 /** Markdown section with detailed description of Exercise CRUD component tests */
 function getExerciseTestDetailSection(): string {

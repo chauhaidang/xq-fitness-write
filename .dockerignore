@@ -1,5 +1,9 @@
 # Dependencies
 node_modules
+.yarn
+.npmrc
+package-lock.json
+generated-clients
 
 # Logs
 npm-debug.log

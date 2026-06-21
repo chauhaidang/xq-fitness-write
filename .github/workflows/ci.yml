@@ -6,9 +6,30 @@ on:
       - main
     paths:
       - 'src/**'
+      - 'api/**'
+      - 'openapitools.json'
+      - 'scripts/generate-api-client.sh'
       - '.do/**'
       - 'package.json'
+      - 'yarn.lock'
+      - '.yarnrc.yml'
       - 'Dockerfile'
+      - 'build-write-service.sh'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'api/**'
+      - 'openapitools.json'
+      - 'scripts/generate-api-client.sh'
+      - '.do/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.yarnrc.yml'
+      - 'Dockerfile'
+      - 'build-write-service.sh'
       - '.github/workflows/ci.yml'
   workflow_dispatch:
 
@@ -41,14 +62,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
           registry-url: 'https://npm.pkg.github.com/'
           scope: '@chauhaidang'
 
-      - name: Install global tools
+      - name: Enable pinned Yarn
         run: |
-          npm install -g @chauhaidang/xq-test-infra@${{ env.XQ_TEST_INFRA_VERSION }}
-          npm install -g @openapitools/openapi-generator-cli
+          corepack enable
+          test "$(yarn --version)" = "4.17.0"
 
       - name: build write-service
         run: |
@@ -56,13 +76,13 @@ jobs:
           ./build-write-service.sh
 
       - name: Generate write-service api client
-        run: npm run generate:client
+        run: ./scripts/generate-api-client.sh write-service
 
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --immutable
       
       - name: Run unit tests
-        run: npm run test:unit
+        run: yarn test:unit
 
       - name: Upload test results
         if: always()
@@ -97,9 +117,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
           registry-url: 'https://npm.pkg.github.com/'
           scope: '@chauhaidang'
+
+      - name: Enable pinned Yarn
+        run: |
+          corepack enable
+          test "$(yarn --version)" = "4.17.0"
 
       - name: Fetch XQ scripts
         run: |
@@ -107,9 +131,7 @@ jobs:
           ./download-xq-scripts.sh
 
       - name: Install global tools
-        run: |
-          npm install -g @chauhaidang/xq-test-infra@${{ env.XQ_TEST_INFRA_VERSION }}
-          npm install -g @openapitools/openapi-generator-cli
+        run: npm install -g @chauhaidang/xq-test-infra@${{ env.XQ_TEST_INFRA_VERSION }}
 
       - name: build write-service
         run: |
@@ -117,16 +139,16 @@ jobs:
           ./build-write-service.sh
 
       - name: Generate write-service api client
-        run: npm run generate:client
+        run: ./scripts/generate-api-client.sh write-service
 
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --immutable
       
       - name: Start up environment
         run: xq-infra generate -f ./test-env && xq-infra up
 
       - name: Run component tests
-        run: npm run test:component:ci
+        run: yarn test:component:ci
 
       - name: Stop environment
         if: always()
@@ -157,6 +179,7 @@ jobs:
 
   dockerize-and-deploy:
     name: Build and Push Docker Image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [unit-tests, component-tests]
     runs-on: ubuntu-latest
     permissions:
@@ -184,7 +207,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
@@ -198,8 +221,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: |
-            GITHUB_ACTOR=${{ github.actor }}
+          secrets: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
       - name: Install doctl and dependencies
@@ -259,24 +281,13 @@ jobs:
           echo "Error: Neon database secrets not set. Configure NEON_DB_HOST, NEON_DB_PORT, NEON_DB_NAME, NEON_DB_USER, NEON_DB_PASSWORD (or NEON_DATASOURCE_URL with NEON_DB_USER and NEON_DB_PASSWORD)." >&2
           exit 1
 
-      - name: Determine image tag
-        id: image-tag
-        run: |
-          # Extract the latest tag from metadata (for main branch it will be 'latest')
-          # For other branches, use branch name or sha
-          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            echo "tag=latest" >> $GITHUB_OUTPUT
-          else
-            BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
-            echo "tag=${BRANCH_NAME}-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Render app spec
         id: render-spec
         env:
           APP_NAME: 'xq-fitness'
           REGION: 'sgp1'
-          IMAGE_TAG: ${{ steps.image-tag.outputs.tag || 'latest' }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_TAG: latest
           GITHUB_REGISTRY_CREDENTIALS: ${{ env.GITHUB_OWNER }}:${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           DB_HOST: ${{ steps.resolve-db.outputs.db_host }}
           DB_PORT: ${{ steps.resolve-db.outputs.db_port }}
@@ -294,6 +305,13 @@ jobs:
           export DB_USER="${DB_USER}"
           export DB_PASSWORD="${DB_PASSWORD}"
           export DB_NAME="${DB_NAME}"
+
+          if [ -z "${IMAGE_NAME}" ] || [ -z "${IMAGE_TAG}" ]; then
+            echo "Error: IMAGE_NAME or IMAGE_TAG is empty" >&2
+            echo "  IMAGE_NAME: ${IMAGE_NAME:-<empty>}"
+            echo "  IMAGE_TAG: ${IMAGE_TAG:-<empty>}"
+            exit 1
+          fi
           
           # Debug: show what will be substituted
           echo ">> Variables for substitution:"
