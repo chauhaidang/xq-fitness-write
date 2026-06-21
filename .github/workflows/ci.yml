@@ -6,9 +6,30 @@ on:
       - main
     paths:
       - 'src/**'
+      - 'api/**'
+      - 'openapitools.json'
+      - 'scripts/generate-api-client.sh'
       - '.do/**'
       - 'package.json'
+      - 'yarn.lock'
+      - '.yarnrc.yml'
       - 'Dockerfile'
+      - 'build-write-service.sh'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'api/**'
+      - 'openapitools.json'
+      - 'scripts/generate-api-client.sh'
+      - '.do/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.yarnrc.yml'
+      - 'Dockerfile'
+      - 'build-write-service.sh'
       - '.github/workflows/ci.yml'
   workflow_dispatch:
 
@@ -41,14 +62,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
           registry-url: 'https://npm.pkg.github.com/'
           scope: '@chauhaidang'
 
-      - name: Install global tools
+      - name: Enable pinned Yarn
         run: |
-          npm install -g @chauhaidang/xq-test-infra@${{ env.XQ_TEST_INFRA_VERSION }}
-          npm install -g @openapitools/openapi-generator-cli
+          corepack enable
+          test "$(yarn --version)" = "4.17.0"
 
       - name: build write-service
         run: |
@@ -56,13 +76,13 @@ jobs:
           ./build-write-service.sh
 
       - name: Generate write-service api client
-        run: npm run generate:client
+        run: ./scripts/generate-api-client.sh write-service
 
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --immutable
       
       - name: Run unit tests
-        run: npm run test:unit
+        run: yarn test:unit
 
       - name: Upload test results
         if: always()
@@ -97,9 +117,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
           registry-url: 'https://npm.pkg.github.com/'
           scope: '@chauhaidang'
+
+      - name: Enable pinned Yarn
+        run: |
+          corepack enable
+          test "$(yarn --version)" = "4.17.0"
 
       - name: Fetch XQ scripts
         run: |
@@ -107,9 +131,7 @@ jobs:
           ./download-xq-scripts.sh
 
       - name: Install global tools
-        run: |
-          npm install -g @chauhaidang/xq-test-infra@${{ env.XQ_TEST_INFRA_VERSION }}
-          npm install -g @openapitools/openapi-generator-cli
+        run: npm install -g @chauhaidang/xq-test-infra@${{ env.XQ_TEST_INFRA_VERSION }}
 
       - name: build write-service
         run: |
@@ -117,16 +139,16 @@ jobs:
           ./build-write-service.sh
 
       - name: Generate write-service api client
-        run: npm run generate:client
+        run: ./scripts/generate-api-client.sh write-service
 
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --immutable
       
       - name: Start up environment
         run: xq-infra generate -f ./test-env && xq-infra up
 
       - name: Run component tests
-        run: npm run test:component:ci
+        run: yarn test:component:ci
 
       - name: Stop environment
         if: always()
@@ -198,8 +220,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: |
-            GITHUB_ACTOR=${{ github.actor }}
+          secrets: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
       - name: Install doctl and dependencies

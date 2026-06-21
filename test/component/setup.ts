@@ -4,7 +4,7 @@
  */
 
 import { waitForService } from '@chauhaidang/xq-test-utils';
-import { logger } from '@chauhaidang/xq-common-kit';
+import { logger } from '@chauhaidang/xq-harness-common-kit';
 
 // Force local DB for component tests (override .env - xq-infra exposes DB on localhost:5432)
 process.env.DB_HOST = '127.0.0.1';

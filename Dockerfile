@@ -1,27 +1,31 @@
+# syntax=docker/dockerfile:1.7
+
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Accept GitHub token as build argument
-ARG GITHUB_TOKEN
-ENV GITHUB_TOKEN=${GITHUB_TOKEN}
+RUN apk add --no-cache bash openjdk17-jre \
+  && corepack enable
 
-# Copy package files (exclude lock file to avoid file:// dependency issues)
-COPY package.json ./
-COPY .npmrc ./
-# Install all deps (including devDependencies for TypeScript build)
-RUN npm install --no-audit
+# Generate the local file dependency before the immutable install.
+COPY package.json yarn.lock .yarnrc.yml openapitools.json ./
+COPY api/write-service-api.yaml ./api/write-service-api.yaml
+COPY scripts/generate-api-client.sh ./scripts/generate-api-client.sh
+RUN --mount=type=secret,id=GITHUB_TOKEN,required=true \
+  export GITHUB_TOKEN="$(cat /run/secrets/GITHUB_TOKEN)" \
+  && bash ./scripts/generate-api-client.sh write-service \
+  && yarn install --immutable
 
 # Copy source and config
 COPY src ./src
 COPY tsconfig.json ./
 
 # Build TypeScript
-RUN npm run build
+RUN yarn build
 
 # Runtime stage
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 

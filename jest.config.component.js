@@ -18,6 +18,8 @@ module.exports = {
   moduleFileExtensions: ['ts', 'js', 'json'],
   moduleNameMapper: {
     '^@helpers/(.*)$': '<rootDir>/test/component/helpers/$1',
+    '^xq-fitness-write-client$':
+      '<rootDir>/generated-clients/write-service/dist/index.js',
   },
   transform: {
     '^.+\\.ts$': [

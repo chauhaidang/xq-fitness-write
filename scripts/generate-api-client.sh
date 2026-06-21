@@ -39,11 +39,17 @@ if [ ! -f "$SPEC_FILE" ]; then
   exit 1
 fi
 
-# Check if openapi-generator-cli is installed globally
-if ! command -v openapi-generator-cli &> /dev/null; then
-  echo -e "${RED}❌ openapi-generator-cli not found${NC}"
-  echo -e "${BLUE}   Install it globally with:${NC}"
-  echo -e "${GREEN}   npm install -g @openapitools/openapi-generator-cli${NC}"
+# Client generation is a bootstrap step, so it must work before dependencies are installed.
+if [ -n "${npm_execpath:-}" ]; then
+  YARN_COMMAND=("$npm_execpath")
+elif command -v "${COREPACK_BIN:-corepack}" &> /dev/null; then
+  YARN_COMMAND=("${COREPACK_BIN:-corepack}" yarn@4.17.0)
+elif command -v yarn &> /dev/null && [[ "$(yarn --version)" == "4.17.0" ]]; then
+  YARN_COMMAND=(yarn)
+else
+  echo -e "${RED}❌ Yarn is not available${NC}"
+  echo -e "${BLUE}   Enable the package-manager version pinned by this repository:${NC}"
+  echo -e "${GREEN}   corepack enable${NC}"
   exit 1
 fi
 
@@ -52,22 +58,28 @@ echo -e "${BLUE}🧹 Cleaning previous generation for ${SERVICE_NAME}...${NC}"
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
+# Run the download tool outside this project so Yarn doesn't try to resolve the
+# not-yet-generated file dependency before the first install.
+BOOTSTRAP_DIR="$(mktemp -d)"
+trap 'rm -rf "$BOOTSTRAP_DIR"' EXIT
+cp "$PROJECT_ROOT/openapitools.json" "$BOOTSTRAP_DIR/openapitools.json"
+
 # Generate TypeScript client
 # Note: Using typescript-fetch generator. Alternative: typescript-axios (has better error handling)
 # To use axios instead, change -g to typescript-axios and add axios dependency
 echo -e "${BLUE}📝 Generating client code from OpenAPI spec...${NC}"
-openapi-generator-cli generate \
+(cd "$BOOTSTRAP_DIR" \
+  && YARN_NODE_LINKER=node-modules YARN_ENABLE_SCRIPTS=true \
+  "${YARN_COMMAND[@]}" dlx @openapitools/openapi-generator-cli@2.25.2 generate \
   -i "$SPEC_FILE" \
   -g typescript-axios \
   -o "$OUTPUT_DIR" \
-  --additional-properties=supportsES6=true,npmName=${PACKAGE_NAME},npmVersion=1.0.0
+  --additional-properties=supportsES6=true,npmName=${PACKAGE_NAME},npmVersion=1.0.0)
 
 echo -e "${GREEN}✅ API Client generation complete!${NC}"
 echo -e "${GREEN}   Service: ${SERVICE_NAME}${NC}"
 echo -e "${GREEN}   Package: ${PACKAGE_NAME}${NC}"
 echo -e "${GREEN}   Generated at: $OUTPUT_DIR${NC}"
 echo ""
-echo -e "${BLUE}To use in e2e tests, the dependency is already in e2e/package.json:${NC}"
-echo -e "${YELLOW}  \"${PACKAGE_NAME}\": \"file:../generated-clients/${SERVICE_NAME}\"${NC}"
-echo ""
-echo -e "${BLUE}Run: cd e2e && npm install${NC}"
+echo -e "${BLUE}Next, install the repository dependencies:${NC}"
+echo -e "${YELLOW}  yarn install --immutable${NC}"
