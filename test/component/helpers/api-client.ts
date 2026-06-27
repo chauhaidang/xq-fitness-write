@@ -5,36 +5,48 @@
 
 import {
   Configuration,
+  MuscleGroupsApi,
   RoutinesApi,
   WorkoutDaysApi,
   WorkoutDaySetsApi,
   ExercisesApi,
   SnapshotsApi,
+  ReportsApi,
   RoutineResponse,
   WorkoutDayResponse,
   WorkoutDaySetResponse,
   ExerciseResponse,
   WeeklySnapshotResponse,
+  MuscleGroup,
+  WorkoutRoutine,
+  WorkoutRoutineDetail,
+  WorkoutDayDetail,
+  WeeklyReportResponse,
+  Exercise,
 } from 'xq-fitness-write-client';
 import { logger } from '@chauhaidang/xq-harness-common-kit';
 
 export class ApiClient {
+  private muscleGroupsApi: MuscleGroupsApi;
   private routinesApi: RoutinesApi;
   private workoutDaysApi: WorkoutDaysApi;
   private workoutDaySetsApi: WorkoutDaySetsApi;
   private exercisesApi: ExercisesApi;
   private snapshotsApi: SnapshotsApi;
+  private reportsApi: ReportsApi;
 
   constructor(baseUrl: string) {
     const config = new Configuration({
       basePath: baseUrl,
     });
 
+    this.muscleGroupsApi = new MuscleGroupsApi(config);
     this.routinesApi = new RoutinesApi(config);
     this.workoutDaysApi = new WorkoutDaysApi(config);
     this.workoutDaySetsApi = new WorkoutDaySetsApi(config);
     this.exercisesApi = new ExercisesApi(config);
     this.snapshotsApi = new SnapshotsApi(config);
+    this.reportsApi = new ReportsApi(config);
   }
 
   /**
@@ -313,5 +325,35 @@ export class ApiClient {
     } catch (error) {
       return await this.handleError(`delete exercise ${id}`, error);
     }
+  }
+
+  async getMuscleGroups(): Promise<MuscleGroup[]> {
+    const res = await this.muscleGroupsApi.getMuscleGroups();
+    return res.data;
+  }
+
+  async getRoutines(isActive?: boolean): Promise<WorkoutRoutine[]> {
+    const res = await this.routinesApi.getRoutines(isActive);
+    return res.data;
+  }
+
+  async getRoutineById(routineId: number): Promise<WorkoutRoutineDetail> {
+    const res = await this.routinesApi.getRoutineById(routineId);
+    return res.data;
+  }
+
+  async getWorkoutDays(routineId: number): Promise<WorkoutDayDetail[]> {
+    const res = await this.workoutDaysApi.getWorkoutDays(routineId);
+    return res.data;
+  }
+
+  async getWeeklyReport(routineId: number, weekStartDate?: string): Promise<WeeklyReportResponse> {
+    const res = await this.reportsApi.getWeeklyReport(routineId, weekStartDate);
+    return res.data;
+  }
+
+  async getExercises(workoutDayId: number, muscleGroupId?: number): Promise<Exercise[]> {
+    const res = await this.exercisesApi.getExercises(workoutDayId, muscleGroupId);
+    return res.data;
   }
 }

@@ -1,151 +1,40 @@
 # XQ Fitness Write Service
 
-Node.js service for creating, updating, and deleting workout data.
+Unified backend for XQ Fitness read and write APIs. All endpoints are defined in [`api/write-service-api.yaml`](api/write-service-api.yaml).
 
-[![Build Test Publish Deploy](https://github.com/chauhaidang/xq-fitness-write/actions/workflows/ci.yml/badge.svg)](https://github.com/chauhaidang/xq-fitness-write/actions/workflows/ci.yml)
+Gateway path: `/xq-fitness-write-service/api/v1`
 
-[![Sync API Definition to xq-apis](https://github.com/chauhaidang/xq-fitness-write/actions/workflows/api-sync.yml/badge.svg)](https://github.com/chauhaidang/xq-fitness-write/actions/workflows/api-sync.yml)
-
-### [Test summary report](https://chauhaidang.github.io/xq-fitness-write/)
-
-## Prerequisites
-
-- Node.js 20 with Corepack
-- PostgreSQL 12+
-- Docker with BuildKit (optional, for containerized deployment)
-- A `GITHUB_TOKEN` with read access to the private `@chauhaidang` packages
-
-## Quick Start
-
-### Local Development
-
-1. Enable the pinned Yarn version, generate the local API client, and install dependencies:
+## Local development
 
 ```bash
-export GITHUB_TOKEN=<github-packages-read-token>
 corepack enable
+export GITHUB_TOKEN=...   # required for private packages
 ./scripts/generate-api-client.sh write-service
 yarn install --immutable
-```
-
-2. Create environment file:
-
-```bash
-cp .env.example .env
-```
-
-3. Update the `.env` file with your database credentials
-
-4. Make sure the database schema is already created (see the read-service README)
-
-5. Run the service:
-
-```bash
-# Development mode with auto-reload
+yarn build
 yarn dev
-
-# Production mode
-yarn start
 ```
 
-The service will start on port 3000 (or the port specified in `.env`).
-
-### Docker Deployment
-
-#### Using Docker Compose (Recommended)
-
-From the project root, run:
+## Tests
 
 ```bash
-docker-compose up -d
+yarn test:unit
+yarn test:component:local   # requires xq-infra
+yarn test:all
 ```
 
-This starts all services including the database, read-service, and write-service.
+## Deployment
 
-#### Using Pre-built GHCR Images
+DigitalOcean App Platform via `.github/workflows/ci.yml`. Updates **write-service** component only; read-service on DO is retired manually after soak.
 
-Pull and run the latest published image:
+### Manual read-service retirement (post-soak)
 
-```bash
-docker run -d \
-  --name xq-write-service \
-  -p 3000:3000 \
-  -e DATABASE_HOST=host.docker.internal \
-  -e DATABASE_PORT=5432 \
-  -e DATABASE_NAME=xq_fitness \
-  -e DATABASE_USER=xq_user \
-  -e DATABASE_PASSWORD=xq_password \
-  -e NODE_ENV=production \
-  ghcr.io/chauhaidang/xq-fitness-write-service:latest
-```
+After merged write-service is deployed and mobile reads use `/xq-fitness-write-service`:
 
-#### Building Docker Image Locally
+1. Verify component tests pass on the write path (`yarn test:component:local` or CI).
+2. Smoke production: `GET .../xq-fitness-write-service/api/v1/muscle-groups`, weekly report, create routine, snapshot.
+3. Keep the read-service DO component running during soak for rollback.
+4. Remove read-service from the `xq-fitness` app in the DO console (or `doctl apps update` with an edited spec). **Do not** automate this in CI.
+5. Optionally archive `xq-fitness-read` GitHub repo and disable read-service CI.
 
-```bash
-export GITHUB_TOKEN=<github-packages-read-token>
-./build-write-service.sh
-docker run -d \
-  --name xq-write-service \
-  -p 3000:3000 \
-  -e DATABASE_HOST=host.docker.internal \
-  -e DATABASE_PORT=5432 \
-  -e DATABASE_NAME=xq_fitness \
-  -e DATABASE_USER=xq_user \
-  -e DATABASE_PASSWORD=xq_password \
-  -e NODE_ENV=production \
-  xq-fitness-write-service:latest
-```
-
-## API Endpoints
-
-Base URL: `http://localhost:3000/api/v1`
-
-### Routines
-
-- `POST /routines` - Create a new routine
-- `PUT /routines/{id}` - Update a routine
-- `DELETE /routines/{id}` - Delete a routine
-
-### Workout Days
-
-- `POST /workout-days` - Create a workout day
-- `PUT /workout-days/{id}` - Update a workout day
-- `DELETE /workout-days/{id}` - Delete a workout day
-
-### Workout Day Sets
-
-- `POST /workout-day-sets` - Add sets configuration
-- `PUT /workout-day-sets/{id}` - Update sets configuration
-- `DELETE /workout-day-sets/{id}` - Delete sets configuration
-
-### Snapshots
-
-- `POST /routines/{routineId}/snapshots` - Create a weekly snapshot for a routine
-  - Creates a snapshot of the current routine data (workout days and sets) for the current week
-  - Resets all sets (`numberOfSets`) to zero after snapshot creation
-  - If a snapshot already exists for the current week, it will be replaced
-  - Returns the created snapshot with `id`, `routineId`, `weekStartDate`, and `createdAt`
-
-## Docker Image Publishing
-
-This service is automatically published to GitHub Container Registry (GHCR) on every push to the `main` branch.
-
-### Image Tags
-
-- `latest` - Most recent build from main branch
-- `main-<commit-sha>` - Specific commit version (e.g., `main-abc1234f`)
-
-### Pulling Published Images
-
-```bash
-docker pull ghcr.io/chauhaidang/xq-fitness-write-service:latest
-docker pull ghcr.io/chauhaidang/xq-fitness-write-service:main-abc1234f
-```
-
-### GitHub Actions Workflow
-
-See `.github/workflows/ci.yml` for the build, test, publish, and deploy workflow.
-
-## API Documentation
-
-See the OpenAPI specification at `./api/write-service-api.yaml`.
+The nginx `/xq-fitness-read-service/` alias can remain as a safety net until all clients are updated.
