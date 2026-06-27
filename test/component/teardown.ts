@@ -5,6 +5,7 @@
 
 import { generateTestReport } from '@chauhaidang/xq-test-utils';
 import { logger } from '@chauhaidang/xq-harness-common-kit';
+import { closeDbFixture } from './helpers/db-fixture';
 
 /** Markdown section with detailed description of Exercise CRUD component tests */
 function getExerciseTestDetailSection(): string {
@@ -27,6 +28,13 @@ export default async (): Promise<void> => {
   logger.info('🧹 Component-Teardown: Running global teardown');
 
   // Close database connection pool to prevent Jest from hanging
+  try {
+    await closeDbFixture();
+    logger.info('✅ Database fixture closed');
+  } catch (error) {
+    logger.warn('⚠️ Could not close database fixture:', error);
+  }
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires -- dynamic require for optional DB teardown
     const db = require('../../src/config/database');

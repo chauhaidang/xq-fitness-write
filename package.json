@@ -1,7 +1,7 @@
 {
   "name": "xq-fitness-write-service",
-  "version": "2.0.1",
-  "description": "Write service for XQ Fitness application",
+  "version": "2.1.0",
+  "description": "Unified read and write API for XQ Fitness",
   "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc",
@@ -47,6 +47,7 @@
     "@types/joi": "^17.2.2",
     "@types/node": "^22.5.0",
     "@types/pg": "^8.16.0",
+    "@types/supertest": "^6.0.3",
     "@types/wait-on": "^5.3.4",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",

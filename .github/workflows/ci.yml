@@ -7,6 +7,7 @@ on:
     paths:
       - 'src/**'
       - 'api/**'
+      - 'test/**'
       - 'openapitools.json'
       - 'scripts/generate-api-client.sh'
       - '.do/**'
@@ -22,6 +23,7 @@ on:
     paths:
       - 'src/**'
       - 'api/**'
+      - 'test/**'
       - 'openapitools.json'
       - 'scripts/generate-api-client.sh'
       - '.do/**'
