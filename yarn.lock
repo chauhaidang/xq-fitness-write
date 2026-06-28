@@ -5868,10 +5868,10 @@ __metadata:
 
 "xq-fitness-write-client@file:./generated-clients/write-service::locator=xq-fitness-write-service%40workspace%3A.":
   version: 1.0.0
-  resolution: "xq-fitness-write-client@file:./generated-clients/write-service#./generated-clients/write-service::hash=72194b&locator=xq-fitness-write-service%40workspace%3A."
+  resolution: "xq-fitness-write-client@file:./generated-clients/write-service#./generated-clients/write-service::hash=ccf6a7&locator=xq-fitness-write-service%40workspace%3A."
   dependencies:
     axios: "npm:^1.6.1"
-  checksum: 10c0/1221121cfdbea2db0af8e924857d7c010ab458c49fa2b03ee21edde74303a250a9aaee3815471e7e51771e0f331341851703b64e84919640d01269657bdec7d5
+  checksum: 10c0/7067d06a534341e294e7384e191525bc9b6286c61bf027885cea4f0a2c10c58d16662e08f801aeb80f06f45113bd288b99e56b53374c62bcf67a6d89319428a6
   languageName: node
   linkType: hard
 
