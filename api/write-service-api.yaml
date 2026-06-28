@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: XQ Fitness API
   description: Unified read and write API for workout routines and related data
-  version: 2.1.0
+  version: 3.0.0
   contact:
     name: XQ Fitness Team
 
