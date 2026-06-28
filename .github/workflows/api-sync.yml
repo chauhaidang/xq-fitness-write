@@ -1,4 +1,4 @@
-name: Sync API Definition to xq-apis
+name: Sync API Definition to xq-contracts
 
 on:
   push:
@@ -57,16 +57,16 @@ jobs:
         with:
           path: write-service
 
-      - name: Checkout xq-apis repository
+      - name: Checkout xq-contracts repository
         uses: actions/checkout@v4
         with:
-          repository: chauhaidang/xq-apis
+          repository: chauhaidang/xq-contracts
           token: ${{ secrets.GH_PAT }}
-          path: xq-apis
+          path: xq-contracts
 
       - name: Configure Git
         run: |
-          cd xq-apis
+          cd xq-contracts
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
@@ -74,20 +74,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          cd xq-apis
+          cd xq-contracts
 
           # Create a new branch
           branch_name="api-update/write-service-v${{ needs.check-version-change.outputs.current_version }}"
           git checkout -b "$branch_name"
 
           # Create directory if it doesn't exist
-          mkdir -p api/write-service
+          mkdir -p rest/write-service
 
           # Copy the API definition file
-          cp ../write-service/api/write-service-api.yaml api/write-service/
+          cp ../write-service/api/write-service-api.yaml rest/write-service/
 
           # Add and commit changes
-          git add api/write-service/write-service-api.yaml
+          git add rest/write-service/write-service-api.yaml
           git commit -m "Update write-service API definition to v${{ needs.check-version-change.outputs.current_version }}"
 
           # Push the branch
@@ -97,7 +97,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          cd xq-apis
+          cd xq-contracts
 
           # Create PR using GitHub CLI
           gh pr create \
@@ -107,7 +107,7 @@ jobs:
           This PR updates the write-service API definition file to version ${{ needs.check-version-change.outputs.current_version }}.
 
           ## Changes
-          - Updated `api/write-service/write-service-api.yaml` from the write-service repository
+          - Updated `rest/write-service/write-service-api.yaml` from the write-service repository
           - API version: ${{ needs.check-version-change.outputs.current_version }}
 
           ## Source
