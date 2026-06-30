@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Script to download contents from https://github.com/chauhaidang/xq-toolbox/tree/main/packages/xq-scripts
+# Script to download contents from https://github.com/chauhaidang/xq-harness/tree/main/modules/xq-scripts
 # and put them into the scripts directory
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_DIR="$SCRIPT_DIR/scripts"
 mkdir -p "$TARGET_DIR"
 
-REPO_URL="https://github.com/chauhaidang/xq-toolbox.git"
-REMOTE_PATH="packages/xq-scripts"
+REPO_URL="https://github.com/chauhaidang/xq-harness.git"
+REMOTE_PATH="modules/xq-scripts"
 
 echo "Downloading contents from $REPO_URL ($REMOTE_PATH) to $TARGET_DIR..."
 
