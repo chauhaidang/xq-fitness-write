@@ -27,6 +27,9 @@ RUN yarn build
 # Runtime stage
 FROM node:20-alpine
 
+LABEL org.opencontainers.image.title="xq-fitness-write-service" \
+  org.opencontainers.image.description="Unified read and write API for XQ Fitness"
+
 WORKDIR /app
 
 # Install dumb-init for proper signal handling
