@@ -31,11 +31,20 @@ Does `write-service/api/write-service-api.yaml` fully cover the live `read-servi
 
 ### Answer
 
-Open. Initial repo scan shows all read paths exist in `write-service`, but parity still needs a contract diff and targeted component/integration checks before the read-service endpoint can be treated as rollback-only.
+Resolved. `write-service/api/write-service-api.yaml` covers every operation from `read-service/api/read-service-api.yaml`:
+
+- `GET /muscle-groups`
+- `GET /routines`
+- `GET /exercises`
+- `GET /routines/{routineId}`
+- `GET /routines/{routineId}/days`
+- `GET /routines/{routineId}/weekly-report`
+
+For those operations, path/method coverage, `operationId`, path/query parameters, response status codes, and response schema references match. Shared schema definitions are compatible: no read-service schema is missing, no read-service property is missing in the write-service schemas, and write-service adds no new required fields. Differences are documentation/example changes plus the additive optional `Error.details` field.
 
 ## #3: How Should Mobile Cut Over?
 
-Blocked by: #2
+Blocked by: none
 Type: Discuss
 
 ### Question
@@ -84,4 +93,3 @@ After production retirement, should this repo delete `read-service/`, move it un
 ### Answer
 
 Open. Deletion is cleanest long-term, but it should wait until no test, mobile, database, docs, generated client, or deployment reference points at `read-service`.
-
