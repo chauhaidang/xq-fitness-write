@@ -3,9 +3,9 @@ Goal: retire `read-service` as a separately deployed/read API service while pres
 Current facts:
 - Root guidance already marks `read-service/` deprecated and says read APIs are served by `write-service`.
 - `write-service` exposes the former read endpoints: `/muscle-groups`, `/routines`, `/routines/{routineId}`, `/routines/{routineId}/days`, `/routines/{routineId}/weekly-report`, and `/exercises`.
-- Mobile still constructs a separate `READ_SERVICE_URL` pointing at `/xq-fitness-read-service/api/v1`.
-- Local/test environment files still reference the read-service image and gateway path.
-- `read-service/` contains a nested Git repo and service-specific build/deploy/test artifacts, so physical deletion should be a final step after client and environment cutover.
+- Mobile read calls use `/xq-fitness-write-service/api/v1`.
+- Local/test environment files no longer need a read-service container.
+- `read-service/` contains a nested Git repo and is kept as archived reference code only.
 
 ## #1: What Is The Deprecation Target State?
 
@@ -18,7 +18,7 @@ Should `read-service` remain as archived reference code in this repository, or s
 
 ### Answer
 
-Proposed target: stop deploying and stop using `read-service`; keep the read API surface in `write-service`; keep `read-service/` temporarily as archived reference during soak; remove it from the active workspace only after the mobile app, test environments, deployment spec, and docs no longer depend on it.
+Resolved target: stop deploying and stop using `read-service`; keep the read API surface in `write-service`; keep `read-service/` as archived reference code only.
 
 ## #2: Is Write-Service Contract Parity Complete?
 
@@ -53,7 +53,7 @@ Should mobile collapse `readApi` and `writeApi` into one axios client now, or ke
 
 ### Answer
 
-Open. Recommended default: point read calls at `WRITE_SERVICE_URL` first with minimal churn, then collapse naming/logging in a cleanup pass. That lowers behavioral risk and makes rollback easier during soak.
+Resolved. Mobile read calls now point at `WRITE_SERVICE_URL` and use `/xq-fitness-write-service/api/v1`.
 
 ## #4: Which Local/Test Environments Still Need The Read-Service Container?
 
@@ -62,11 +62,11 @@ Type: Research
 
 ### Question
 
-Which `test-env`, E2E, database, and mobile integration workflows still launch or expect `xq-fitness-read-service`, and can each be moved to the unified write-service image/path?
+Which `test-env`, E2E, database, and mobile integration workflows launched or expected the old read-service container, and have they been moved to the unified write-service image/path?
 
 ### Answer
 
-Open. Known references exist in `mobile/e2e/test-env`, `mobile/test-env`, `database/test-env`, `read-service/test-env`, and mobile integration helper docs/tests.
+Resolved. Active mobile and database test environments do not launch the old read-service container. The remaining read-service test environment lives inside the archived `read-service/` repo only.
 
 ## #5: What Is The Deployment Retirement Sequence?
 
@@ -75,11 +75,11 @@ Type: Discuss
 
 ### Question
 
-What production sequence safely retires the DigitalOcean read-service component and optional `/xq-fitness-read-service/` nginx alias?
+What production sequence safely retires the DigitalOcean read-service component and legacy gateway alias?
 
 ### Answer
 
-Open. Existing `write-service/README.md` recommends manual retirement after soak. The sequence should define health checks, rollback criteria, how long the read-service component stays running, and when to remove or retain the nginx alias.
+Resolved. Production should target only `/xq-fitness-write-service/api/v1`; `read-service` CI/deploy is manual-only and the DigitalOcean read-service component should remain removed.
 
 ## #6: When Can Read-Service Code Be Removed Or Archived?
 
@@ -92,4 +92,4 @@ After production retirement, should this repo delete `read-service/`, move it un
 
 ### Answer
 
-Open. Deletion is cleanest long-term, but it should wait until no test, mobile, database, docs, generated client, or deployment reference points at `read-service`.
+Resolved. Keep `read-service/` as archived reference code. Do not deploy it or add new API behavior there.
