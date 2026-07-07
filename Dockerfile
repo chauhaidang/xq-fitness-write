@@ -5,24 +5,23 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-RUN apk add --no-cache bash openjdk17-jre \
-  && corepack enable
+RUN apk add --no-cache bash openjdk17-jre
 
-# Generate the local file dependency before the immutable install.
-COPY package.json yarn.lock .yarnrc.yml openapitools.json ./
+# Generate the local file dependency before the clean install.
+COPY package.json package-lock.json .npmrc openapitools.json ./
 COPY api/write-service-api.yaml ./api/write-service-api.yaml
 COPY scripts/generate-api-client.sh ./scripts/generate-api-client.sh
 RUN --mount=type=secret,id=GITHUB_TOKEN,required=true \
   export GITHUB_TOKEN="$(cat /run/secrets/GITHUB_TOKEN)" \
   && bash ./scripts/generate-api-client.sh write-service \
-  && yarn install --immutable
+  && npm ci
 
 # Copy source and config
 COPY src ./src
 COPY tsconfig.json ./
 
 # Build TypeScript
-RUN yarn build
+RUN npm run build
 
 # Runtime stage
 FROM node:20-alpine

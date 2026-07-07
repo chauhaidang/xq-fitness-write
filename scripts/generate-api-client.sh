@@ -40,16 +40,11 @@ if [ ! -f "$SPEC_FILE" ]; then
 fi
 
 # Client generation is a bootstrap step, so it must work before dependencies are installed.
-if [ -n "${npm_execpath:-}" ]; then
-  YARN_COMMAND=("$npm_execpath")
-elif command -v "${COREPACK_BIN:-corepack}" &> /dev/null; then
-  YARN_COMMAND=("${COREPACK_BIN:-corepack}" yarn@4.17.0)
-elif command -v yarn &> /dev/null && [[ "$(yarn --version)" == "4.17.0" ]]; then
-  YARN_COMMAND=(yarn)
+if command -v npm &> /dev/null; then
+  NPM_COMMAND=(npm)
 else
-  echo -e "${RED}❌ Yarn is not available${NC}"
-  echo -e "${BLUE}   Enable the package-manager version pinned by this repository:${NC}"
-  echo -e "${GREEN}   corepack enable${NC}"
+  echo -e "${RED}❌ npm is not available${NC}"
+  echo -e "${BLUE}   Install Node.js 20+ with npm, then rerun this script.${NC}"
   exit 1
 fi
 
@@ -69,8 +64,7 @@ cp "$PROJECT_ROOT/openapitools.json" "$BOOTSTRAP_DIR/openapitools.json"
 # To use axios instead, change -g to typescript-axios and add axios dependency
 echo -e "${BLUE}📝 Generating client code from OpenAPI spec...${NC}"
 (cd "$BOOTSTRAP_DIR" \
-  && YARN_NODE_LINKER=node-modules YARN_ENABLE_SCRIPTS=true \
-  "${YARN_COMMAND[@]}" dlx @openapitools/openapi-generator-cli@2.25.2 generate \
+  && "${NPM_COMMAND[@]}" exec --yes --package @openapitools/openapi-generator-cli@2.25.2 -- openapi-generator-cli generate \
   -i "$SPEC_FILE" \
   -g typescript-axios \
   -o "$OUTPUT_DIR" \
@@ -82,4 +76,4 @@ echo -e "${GREEN}   Package: ${PACKAGE_NAME}${NC}"
 echo -e "${GREEN}   Generated at: $OUTPUT_DIR${NC}"
 echo ""
 echo -e "${BLUE}Next, install the repository dependencies:${NC}"
-echo -e "${YELLOW}  yarn install --immutable${NC}"
+echo -e "${YELLOW}  npm ci${NC}"

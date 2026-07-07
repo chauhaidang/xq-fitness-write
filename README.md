@@ -7,20 +7,19 @@ Gateway path: `/xq-fitness-write-service/api/v1`
 ## Local development
 
 ```bash
-corepack enable
 export GITHUB_TOKEN=...   # required for private packages
 ./scripts/generate-api-client.sh write-service
-yarn install --immutable
-yarn build
-yarn dev
+npm ci
+npm run build
+npm run dev
 ```
 
 ## Tests
 
 ```bash
-yarn test:unit
-yarn test:component:local   # requires xq-infra
-yarn test:all
+npm run test:unit
+npm run test:component:local   # requires xq-infra
+npm run test:all
 ```
 
 ## Deployment
